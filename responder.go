@@ -202,6 +202,7 @@ func (responder *Responder) buildResponseMap() {
 
 	// heatbeat
 	responder.responseMap["F4"] = []byte{0xf4, 0x00}
+	responder.responseMap["FB"] = []byte{0xfb, 0x00}
 
 	// adjustments
 	responder.responseMap["7A"] = []byte{0x7a, 0x8a}
