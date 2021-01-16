@@ -13,13 +13,19 @@ func TestConnectAndInitialise(t *testing.T) {
 	// disable internal logging when running tests
 	log.SetOutput(ioutil.Discard)
 
-	port := "/dev/null"
+	// ensure memsulator is running and change the port
+	// to the ttyecu path
+	port := "/Users/ajackson/ttyecu"
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
-	then.AssertThat(t, mems.Connected, is.False())
-	then.AssertThat(t, mems.Initialised, is.False())
+	then.AssertThat(t, mems.Status.Connected, is.True())
+	then.AssertThat(t, mems.Status.Initialised, is.True())
+
+	mems.Disconnect()
+	then.AssertThat(t, mems.Status.Connected, is.False())
+	then.AssertThat(t, mems.Status.Initialised, is.False())
 }
 
 func TestConnectAndInitialiseScenario(t *testing.T) {
@@ -28,8 +34,8 @@ func TestConnectAndInitialiseScenario(t *testing.T) {
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
-	then.AssertThat(t, mems.Connected, is.True())
-	then.AssertThat(t, mems.Initialised, is.True())
+	then.AssertThat(t, mems.Status.Connected, is.True())
+	then.AssertThat(t, mems.Status.Initialised, is.True())
 }
 
 func TestScenarioGetDataframe(t *testing.T) {
