@@ -223,6 +223,178 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	return memsdata
 }
 
+// ResetAdjustments resets the adjustable values
+func (mems *MemsConnection) ResetAdjustments() bool {
+	var data []byte
+
+	data, _ = mems.SendCommand(MEMSResetAdj)
+
+	if len(data) > 1 {
+		return data[0] == MEMSResetAdj[0]
+	}
+
+	return false
+}
+
+// ResetECU clears fault codes. resets adjustable values and learnt values
+func (mems *MemsConnection) ResetECU() bool {
+	var data []byte
+
+	data, _ = mems.SendCommand(MEMSResetECU)
+
+	if len(data) > 1 {
+		return data[0] == MEMSResetECU[0]
+	}
+
+	return false
+}
+
+// ClearFaults clears fault codes
+func (mems *MemsConnection) ClearFaults() bool {
+	var data []byte
+
+	data, _ = mems.SendCommand(MEMSClearFaults)
+
+	if len(data) > 1 {
+		return data[0] == MEMSClearFaults[0]
+	}
+
+	return false
+}
+
+// Request current IAC position
+func (mems *MemsConnection) GetIACPosition() int {
+	var data []byte
+
+	data, _ = mems.SendCommand(MEMSGetIACPosition)
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSIACPositionDefault
+	}
+}
+
+// AdjustShortTermFuelTrim increments or decrements by the number
+// of steps
+func (mems *MemsConnection) AdjustShortTermFuelTrim(steps int) int {
+	var data []byte
+
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.SendCommand(MEMSSTFTIncrement)
+		}
+	}
+
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.SendCommand(MEMSSTFTDecrement)
+		}
+	}
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSFuelTrimDefault
+	}
+}
+
+// AdjustLongTermFuelTrim increments or decrements by the number
+// of steps
+func (mems *MemsConnection) AdjustLongTermFuelTrim(steps int) int {
+	var data []byte
+
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.SendCommand(MEMSLTFTIncrement)
+		}
+	}
+
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.SendCommand(MEMSLTFTDecrement)
+		}
+	}
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSFuelTrimDefault
+	}
+}
+
+// AdjustIdleDecay increments or decrements by the number
+// of steps
+func (mems *MemsConnection) AdjustIdleDecay(steps int) int {
+	var data []byte
+
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.SendCommand(MEMSIdleDecayIncrement)
+		}
+	}
+
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.SendCommand(MEMSIdleDecayDecrement)
+		}
+	}
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSIdleDecayDefault
+	}
+}
+
+// AdjustIdleSpeed increments or decrements by the number
+// of steps
+func (mems *MemsConnection) AdjustIdleSpeed(steps int) int {
+	var data []byte
+
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.SendCommand(MEMSIdleSpeedIncrement)
+		}
+	}
+
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.SendCommand(MEMSIdleSpeedDecrement)
+		}
+	}
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSIdleSpeedDefault
+	}
+}
+
+// AdjustIgnitionAdvanceOffset increments or decrements by the number
+// of steps
+func (mems *MemsConnection) AdjustIgnitionAdvanceOffset(steps int) int {
+	var data []byte
+
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.SendCommand(MEMSIgnitionAdvanceOffsetIncrement)
+		}
+	}
+
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.SendCommand(MEMSIgnitionAdvanceOffsetDecrement)
+		}
+	}
+
+	if len(data) > 1 {
+		return int(data[1])
+	} else {
+		return MEMSIgnitionAdvanceOffsetDefault
+	}
+}
+
 //
 // Private functions
 //

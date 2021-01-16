@@ -28,6 +28,7 @@ var MEMSClearFaults = []byte{0xCC}
 
 // MEMSGetIACPosition command code to retrieve the Idle Air Control position
 var MEMSGetIACPosition = []byte{0xFB}
+var MEMSIACPositionDefault = 0x00
 
 // MEMSResetAdj command code that instructs the ECU to clear all adjustments
 var MEMSResetAdj = []byte{0x0F}
@@ -45,6 +46,10 @@ var MEMSResetECU = []byte{0xFA}
 // | Idle speed              |     92    |     91    |
 // | Ignition advance offset |     94    |     93    |
 
+//
+// Fuel Trim Adjustments
+//
+
 // MEMSSTFTDecrement command
 var MEMSSTFTDecrement = []byte{0x7a}
 
@@ -56,24 +61,44 @@ var MEMSLTFTDecrement = []byte{0x7c}
 
 // MEMSLTFTIncrement command
 var MEMSLTFTIncrement = []byte{0x7b}
+var MEMSFuelTrimMin = 0x00
+var MEMSFuelTrimMax = 0xfe
+var MEMSFuelTrimDefault = 0x8a
+
+//
+// Idle Decay Adjustments
+//
 
 // MEMSIdleDecayDecrement commad
-var MEMSIdleDecayDecrement = []byte{0x7c}
+var MEMSIdleDecayDecrement = []byte{0x8a}
 
 // MEMSIdleDecayIncrement command
-var MEMSIdleDecayIncrement = []byte{0x7b}
+var MEMSIdleDecayIncrement = []byte{0x89}
+var MEMSIdleDecayMin = 0x0a
+var MEMSIdleDecayMax = 0x3c
+var MEMSIdleDecayDefault = 0x23
+
+//
+// Idle Speed Adjustments
+//
 
 // MEMSIdleSpeedDecrement command
 var MEMSIdleSpeedDecrement = []byte{0x92}
 
 // MEMSIdleSpeedIncrement command
-var MEMSIdleSpeedIncrement = []byte{0x93}
+var MEMSIdleSpeedIncrement = []byte{0x91}
+var MEMSIdleSpeedMin = 0x78
+var MEMSIdleSpeedMax = 0x88
+var MEMSIdleSpeedDefault = 0x80
 
 // MEMSIgnitionAdvanceOffsetDecrement command
 var MEMSIgnitionAdvanceOffsetDecrement = []byte{0x94}
 
 // MEMSIgnitionAdvanceOffsetIncrement command
 var MEMSIgnitionAdvanceOffsetIncrement = []byte{0x93}
+var MEMSIgnitionAdvanceOffsetMin = 0x74
+var MEMSIgnitionAdvanceOffsetMax = 0x8c
+var MEMSIgnitionAdvanceOffsetDefault = 0x80
 
 // Actuators
 var MEMSFuelPumpOn = []byte{0x11}
