@@ -111,7 +111,7 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 }
 
 // ResetDiagnostics clears and resets the diagnostic data
-func (mems *MemsConnection) ResetDiagnotics() {
+func (mems *MemsConnection) ResetDiagnostics() {
 	// update the status
 	mems.Diagnostics = NewMemsDiagnostics()
 }
@@ -121,8 +121,8 @@ func (mems *MemsConnection) GetStatus() MemsConnectionStatus {
 	return *mems.Status
 }
 
-// SendCommand sends a command and returns the response
-func (mems *MemsConnection) SendCommand(cmd []byte) ([]byte, error) {
+// sendCommandAndWaitResponse sends a command and returns the response
+func (mems *MemsConnection) sendCommandAndWaitResponse(cmd []byte) ([]byte, error) {
 	mems.writeSerial(cmd)
 	response, e := mems.readSerial()
 
@@ -223,50 +223,30 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	return memsdata
 }
 
+func (mems *MemsConnection) SendHeartbeat() bool {
+	return mems.clearState(MEMSHeartbeat)
+}
+
 // ResetAdjustments resets the adjustable values
 func (mems *MemsConnection) ResetAdjustments() bool {
-	var data []byte
-
-	data, _ = mems.SendCommand(MEMSResetAdj)
-
-	if len(data) > 1 {
-		return data[0] == MEMSResetAdj[0]
-	}
-
-	return false
+	return mems.clearState(MEMSResetAdj)
 }
 
 // ResetECU clears fault codes. resets adjustable values and learnt values
 func (mems *MemsConnection) ResetECU() bool {
-	var data []byte
-
-	data, _ = mems.SendCommand(MEMSResetECU)
-
-	if len(data) > 1 {
-		return data[0] == MEMSResetECU[0]
-	}
-
-	return false
+	return mems.clearState(MEMSResetECU)
 }
 
 // ClearFaults clears fault codes
 func (mems *MemsConnection) ClearFaults() bool {
-	var data []byte
-
-	data, _ = mems.SendCommand(MEMSClearFaults)
-
-	if len(data) > 1 {
-		return data[0] == MEMSClearFaults[0]
-	}
-
-	return false
+	return mems.clearState(MEMSClearFaults)
 }
 
-// Request current IAC position
+// GetIACPosition returns the current IAC position
 func (mems *MemsConnection) GetIACPosition() int {
 	var data []byte
 
-	data, _ = mems.SendCommand(MEMSGetIACPosition)
+	data, _ = mems.sendCommandAndWaitResponse(MEMSGetIACPosition)
 
 	if len(data) > 1 {
 		return int(data[1])
@@ -275,129 +255,159 @@ func (mems *MemsConnection) GetIACPosition() int {
 	}
 }
 
-// AdjustShortTermFuelTrim increments or decrements by the number
-// of steps
+// AdjustShortTermFuelTrim increments or decrements by the number of steps
 func (mems *MemsConnection) AdjustShortTermFuelTrim(steps int) int {
-	var data []byte
-
-	if steps > 0 {
-		for step := 0; step < steps; step++ {
-			data, _ = mems.SendCommand(MEMSSTFTIncrement)
-		}
-	}
-
-	if steps < 0 {
-		for step := steps; step < 0; step++ {
-			data, _ = mems.SendCommand(MEMSSTFTDecrement)
-		}
-	}
-
-	if len(data) > 1 {
-		return int(data[1])
-	} else {
-		return MEMSFuelTrimDefault
-	}
+	return mems.applyAdjustment(MEMSSTFTIncrement, MEMSSTFTDecrement, MEMSFuelTrimDefault, steps)
 }
 
-// AdjustLongTermFuelTrim increments or decrements by the number
-// of steps
+// AdjustLongTermFuelTrim increments or decrements by the number of steps
 func (mems *MemsConnection) AdjustLongTermFuelTrim(steps int) int {
-	var data []byte
-
-	if steps > 0 {
-		for step := 0; step < steps; step++ {
-			data, _ = mems.SendCommand(MEMSLTFTIncrement)
-		}
-	}
-
-	if steps < 0 {
-		for step := steps; step < 0; step++ {
-			data, _ = mems.SendCommand(MEMSLTFTDecrement)
-		}
-	}
-
-	if len(data) > 1 {
-		return int(data[1])
-	} else {
-		return MEMSFuelTrimDefault
-	}
+	return mems.applyAdjustment(MEMSLTFTIncrement, MEMSLTFTDecrement, MEMSFuelTrimDefault, steps)
 }
 
-// AdjustIdleDecay increments or decrements by the number
-// of steps
+// AdjustIdleDecay increments or decrements by the number  of steps
 func (mems *MemsConnection) AdjustIdleDecay(steps int) int {
-	var data []byte
-
-	if steps > 0 {
-		for step := 0; step < steps; step++ {
-			data, _ = mems.SendCommand(MEMSIdleDecayIncrement)
-		}
-	}
-
-	if steps < 0 {
-		for step := steps; step < 0; step++ {
-			data, _ = mems.SendCommand(MEMSIdleDecayDecrement)
-		}
-	}
-
-	if len(data) > 1 {
-		return int(data[1])
-	} else {
-		return MEMSIdleDecayDefault
-	}
+	return mems.applyAdjustment(MEMSIdleDecayIncrement, MEMSIdleDecayDecrement, MEMSIdleDecayDefault, steps)
 }
 
-// AdjustIdleSpeed increments or decrements by the number
-// of steps
+// AdjustIdleSpeed increments or decrements by the number of steps
 func (mems *MemsConnection) AdjustIdleSpeed(steps int) int {
-	var data []byte
-
-	if steps > 0 {
-		for step := 0; step < steps; step++ {
-			data, _ = mems.SendCommand(MEMSIdleSpeedIncrement)
-		}
-	}
-
-	if steps < 0 {
-		for step := steps; step < 0; step++ {
-			data, _ = mems.SendCommand(MEMSIdleSpeedDecrement)
-		}
-	}
-
-	if len(data) > 1 {
-		return int(data[1])
-	} else {
-		return MEMSIdleSpeedDefault
-	}
+	return mems.applyAdjustment(MEMSIdleSpeedIncrement, MEMSIdleSpeedDecrement, MEMSIdleSpeedDefault, steps)
 }
 
-// AdjustIgnitionAdvanceOffset increments or decrements by the number
-// of steps
+// AdjustIgnitionAdvanceOffset increments or decrements by the number of steps
 func (mems *MemsConnection) AdjustIgnitionAdvanceOffset(steps int) int {
-	var data []byte
+	return mems.applyAdjustment(MEMSIgnitionAdvanceOffsetIncrement, MEMSIgnitionAdvanceOffsetDecrement, MEMSIgnitionAdvanceOffsetDefault, steps)
+}
 
-	if steps > 0 {
-		for step := 0; step < steps; step++ {
-			data, _ = mems.SendCommand(MEMSIgnitionAdvanceOffsetIncrement)
-		}
-	}
+// AdjustIACPosition increments or decrements by the number of steps
+func (mems *MemsConnection) AdjustIACPosition(steps int) int {
+	return mems.applyAdjustment(MEMSIACIncrement, MEMSIACDecrement, MEMSIACPositionDefault, steps)
+}
 
-	if steps < 0 {
-		for step := steps; step < 0; step++ {
-			data, _ = mems.SendCommand(MEMSIgnitionAdvanceOffsetDecrement)
-		}
-	}
+// TestFuelPump test
+func (mems *MemsConnection) TestFuelPump(activate bool) bool {
+	return mems.activateActuator(MEMSFuelPumpOn, MEMSFuelPumpOff, activate)
+}
 
-	if len(data) > 1 {
-		return int(data[1])
-	} else {
-		return MEMSIgnitionAdvanceOffsetDefault
-	}
+// PTCRelay test
+func (mems *MemsConnection) TestPTCRelay(activate bool) bool {
+	return mems.activateActuator(MEMSPTCRelayOn, MEMSPTCRelayOff, activate)
+}
+
+// ACRelay test
+func (mems *MemsConnection) TestACRelay(activate bool) bool {
+	return mems.activateActuator(MEMSACRelayOn, MEMSACRelayOff, activate)
+}
+
+// TestPurgeValve test
+func (mems *MemsConnection) TestPurgeValve(activate bool) bool {
+	return mems.activateActuator(MEMSPurgeValveOn, MEMSPurgeValveOff, activate)
+}
+
+// TestO2Heater test
+func (mems *MemsConnection) TestO2Heater(activate bool) bool {
+	return mems.activateActuator(MEMSO2HeaterOn, MEMSO2HeaterOff, activate)
+}
+
+// TestBoostValve test
+func (mems *MemsConnection) TestBoostValve(activate bool) bool {
+	return mems.activateActuator(MEMSBoostValveOn, MEMSBoostValveOff, activate)
+}
+
+// TestFan1 test
+func (mems *MemsConnection) TestFan1(activate bool) bool {
+	return mems.activateActuator(MEMSFan1On, MEMSFan1Off, activate)
+}
+
+// TestFan2 test
+func (mems *MemsConnection) TestFan2(activate bool) bool {
+	return mems.activateActuator(MEMSFan2On, MEMSFan2Off, activate)
+}
+
+// TestInjectors test, the activate state is ignored on this test
+func (mems *MemsConnection) TestInjectors(activate bool) bool {
+	return mems.activateActuator(MEMSTestInjectors, MEMSTestInjectors, activate)
+}
+
+// TestCoil test, the activate state is ignored on this test
+func (mems *MemsConnection) TestCoil(activate bool) bool {
+	return mems.activateActuator(MEMSFireCoil, MEMSFireCoil, activate)
 }
 
 //
 // Private functions
 //
+
+// Increment or Decrement the adjustment by n steps
+// Returns the final value of the adjustment
+func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCommand []byte, defaultValue int, steps int) int {
+	var data []byte
+
+	// if the steps are positive then increment the adjustment
+	// by n steps.
+	// ignore all but the last value reading
+	if steps > 0 {
+		for step := 0; step < steps; step++ {
+			data, _ = mems.sendCommandAndWaitResponse(incrementCommand)
+		}
+	}
+
+	// if the steps are negative then decrement the adjustment
+	// by n steps.
+	// ignore all but the last value reading
+	if steps < 0 {
+		for step := steps; step < 0; step++ {
+			data, _ = mems.sendCommandAndWaitResponse(decrementCommand)
+		}
+	}
+
+	// ensure we have at least 1 byte returned
+	// before returning the value
+	if len(data) > 1 {
+		return int(data[1])
+	}
+
+	// the data returned was either invalid or the command echo (byte 0) in the response
+	// didn't match the command sent.
+	// return the default value for the adjuster
+	return defaultValue
+}
+
+// Switches on or off the actuator
+// Returns the success of the operation
+func (mems *MemsConnection) activateActuator(activateCommand []byte, deactivateCommand []byte, activate bool) bool {
+	var cmd []byte
+	var data []byte
+
+	if activate {
+		cmd = activateCommand
+	} else {
+		cmd = deactivateCommand
+	}
+
+	data, _ = mems.sendCommandAndWaitResponse(cmd)
+
+	if len(data) > 1 {
+		return data[0] == cmd[0]
+	}
+
+	return false
+}
+
+// Clears the state for the reset command
+// Returns success of the operation
+func (mems *MemsConnection) clearState(resetCommand []byte) bool {
+	var data []byte
+
+	data, _ = mems.sendCommandAndWaitResponse(resetCommand)
+
+	if len(data) > 1 {
+		return data[0] == resetCommand[0]
+	}
+
+	return false
+}
 
 // connect to MEMS via serial port
 func (mems *MemsConnection) connect(port string) {
@@ -467,9 +477,6 @@ func (mems *MemsConnection) initialise() {
 			_, _ = mems.readSerial()
 
 			mems.writeSerial(MEMSInitCommandB)
-			_, _ = mems.readSerial()
-
-			mems.writeSerial(MEMSHeartbeat)
 			_, _ = mems.readSerial()
 
 			mems.writeSerial(MEMSInitECUID)

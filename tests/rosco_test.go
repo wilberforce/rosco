@@ -57,17 +57,6 @@ func TestScenarioGetDataframe(t *testing.T) {
 	then.AssertThat(t, data.BatteryVoltage, is.GreaterThan(0.0))
 }
 
-func TestScenarioSendCommand(t *testing.T) {
-	port := getPort(true)
-
-	mems := rosco.NewMemsConnection()
-	mems.ConnectAndInitialiseECU(port)
-
-	data, _ := mems.SendCommand(rosco.MEMSGetIACPosition)
-
-	then.AssertThat(t, data[0], is.EqualTo(rosco.MEMSGetIACPosition[0]))
-}
-
 func TestAdjustSTFT(t *testing.T) {
 	port := getPort(false)
 
@@ -91,7 +80,7 @@ func TestResetAdjustments(t *testing.T) {
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ResetAdjustments()
-	then.AssertThat(t, success, is.EqualTo(true))
+	then.AssertThat(t, success, is.True())
 }
 
 func TestResetECU(t *testing.T) {
@@ -101,7 +90,7 @@ func TestResetECU(t *testing.T) {
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ResetECU()
-	then.AssertThat(t, success, is.EqualTo(true))
+	then.AssertThat(t, success, is.True())
 }
 
 func TestClearFaults(t *testing.T) {
@@ -111,7 +100,7 @@ func TestClearFaults(t *testing.T) {
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ClearFaults()
-	then.AssertThat(t, success, is.EqualTo(true))
+	then.AssertThat(t, success, is.True())
 }
 
 func TestGetIACPosition(t *testing.T) {
@@ -170,4 +159,43 @@ func TestIgnitionAdvanceOffset(t *testing.T) {
 
 	value = mems.AdjustIgnitionAdvanceOffset(0)
 	then.AssertThat(t, value, is.EqualTo(rosco.MEMSIgnitionAdvanceOffsetDefault))
+}
+
+func TestIACPosition(t *testing.T) {
+	port := getPort(false)
+
+	mems := rosco.NewMemsConnection()
+	mems.ConnectAndInitialiseECU(port)
+
+	value := mems.AdjustIACPosition(1)
+	then.AssertThat(t, value, is.EqualTo(rosco.MEMSIACPositionDefault+1))
+
+	value = mems.AdjustIACPosition(-1)
+	then.AssertThat(t, value, is.EqualTo(rosco.MEMSIACPositionDefault-1))
+
+	value = mems.AdjustIACPosition(0)
+	then.AssertThat(t, value, is.EqualTo(rosco.MEMSIACPositionDefault))
+}
+
+func TestHeartbeat(t *testing.T) {
+	port := getPort(false)
+
+	mems := rosco.NewMemsConnection()
+	mems.ConnectAndInitialiseECU(port)
+
+	value := mems.SendHeartbeat()
+	then.AssertThat(t, value, is.True())
+}
+
+func TestActuators(t *testing.T) {
+	port := getPort(false)
+
+	mems := rosco.NewMemsConnection()
+	mems.ConnectAndInitialiseECU(port)
+
+	value := mems.TestFuelPump(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestFuelPump(false)
+	then.AssertThat(t, value, is.True())
 }
