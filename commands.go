@@ -49,13 +49,10 @@ var MEMSResetECU = []byte{0xFA}
 
 // MEMSSTFTDecrement command
 var MEMSSTFTDecrement = []byte{0x7a}
-
 // MEMSSTFTIncrement command
 var MEMSSTFTIncrement = []byte{0x79}
-
 // MEMSLTFTDecrement command
 var MEMSLTFTDecrement = []byte{0x7c}
-
 // MEMSLTFTIncrement command
 var MEMSLTFTIncrement = []byte{0x7b}
 var MEMSFuelTrimMin = 0x00

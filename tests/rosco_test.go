@@ -4,8 +4,6 @@ import (
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
-	"io/ioutil"
-	"log"
 	"testing"
 )
 
@@ -21,7 +19,7 @@ func getPort(useScenario bool) string {
 
 func TestConnectAndInitialise(t *testing.T) {
 	// disable internal logging when running tests
-	log.SetOutput(ioutil.Discard)
+	//log.SetOutput(ioutil.Discard)
 
 	port := getPort(false)
 
@@ -197,5 +195,62 @@ func TestActuators(t *testing.T) {
 	then.AssertThat(t, value, is.True())
 
 	value = mems.TestFuelPump(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestPTCRelay(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestPTCRelay(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestACRelay(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestACRelay(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestPurgeValve(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestPurgeValve(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestO2Heater(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestO2Heater(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestBoostValve(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestBoostValve(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestInjectors(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestInjectors(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestCoil(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestCoil(false)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestFan1(true)
+	then.AssertThat(t, value, is.True())
+
+	// Testing Fan1 deactivate command causes issues on the emulated
+	// serial port, assume this is a special character
+
+	//value = mems.TestFan1(false)
+	//then.AssertThat(t, value, is.True())
+
+	value = mems.TestFan2(true)
+	then.AssertThat(t, value, is.True())
+
+	value = mems.TestFan2(false)
 	then.AssertThat(t, value, is.True())
 }
