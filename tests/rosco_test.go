@@ -4,6 +4,8 @@ import (
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
+	"io/ioutil"
+	"log"
 	"testing"
 )
 
@@ -19,7 +21,7 @@ func getPort(useScenario bool) string {
 
 func TestConnectAndInitialise(t *testing.T) {
 	// disable internal logging when running tests
-	//log.SetOutput(ioutil.Discard)
+	log.SetOutput(ioutil.Discard)
 
 	port := getPort(false)
 
@@ -52,7 +54,10 @@ func TestScenarioGetDataframe(t *testing.T) {
 
 	data := mems.GetDataframes()
 
-	then.AssertThat(t, data.BatteryVoltage, is.GreaterThan(0.0))
+	then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(12.0))
+	then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
+	then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
+	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(12.0))
 }
 
 func TestAdjustSTFT(t *testing.T) {
@@ -183,6 +188,8 @@ func TestHeartbeat(t *testing.T) {
 
 	value := mems.SendHeartbeat()
 	then.AssertThat(t, value, is.True())
+	then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSHeartbeat))
+	then.AssertThat(t, mems.CommandResponse.Response[0], is.EqualTo(rosco.MEMSHeartbeat[0]))
 }
 
 func TestActuators(t *testing.T) {

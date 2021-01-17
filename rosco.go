@@ -112,6 +112,9 @@ func (mems *MemsConnection) sendCommandAndWaitResponse(cmd []byte) ([]byte, erro
 		LogW.Printf("%s command send/receive fault %v", ECUResponseTrace, e)
 	}
 
+	mems.CommandResponse.Command = cmd
+	mems.CommandResponse.Response = response
+
 	return response, e
 }
 
@@ -197,6 +200,10 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	}
 
 	// add the data for diagnostics
+	mems.CommandResponse.Command = MEMSDataFrame
+	mems.CommandResponse.Response = MEMSDataFrame
+	mems.CommandResponse.MemsDataFrame = memsdata
+
 	mems.Diagnostics.Add(memsdata)
 	mems.Diagnostics.Analyse()
 
