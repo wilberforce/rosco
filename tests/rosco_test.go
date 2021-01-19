@@ -5,6 +5,7 @@ import (
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
+	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -51,10 +52,11 @@ func getPort(useScenario bool) string {
 		return "scenario.csv"
 	}
 
-	// ensure memsulator is running and change the port
-	// to the ttyecu path
-	//return "/Users/ajackson/ttyecu"
-	return "/Users/andrew.jacksonglobalsign.com/ttyecu"
+	// ensure memsulator is running for tests to pass
+	homeFolder, _ := homedir.Dir()
+	path := fmt.Sprintf("%s/ttyecu", homeFolder)
+
+	return filepath.FromSlash(path)
 }
 
 func TestConnectAndInitialise(t *testing.T) {
