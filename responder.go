@@ -2,6 +2,8 @@ package rosco
 
 import (
 	"encoding/hex"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 
@@ -63,7 +65,7 @@ func (responder *Responder) openFile(filepath string) error {
 	responder.file, err = os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, os.ModePerm)
 
 	if err != nil {
-		LogE.Printf("unable to open %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("error opening scenario file")
 	}
 
 	return err
@@ -76,9 +78,9 @@ func (responder *Responder) loadScenarioCSV(filepath string) error {
 	_ = responder.openFile(filepath)
 
 	if err = gocsv.Unmarshal(responder.file, &responder.RawData); err != nil {
-		LogE.Printf("unable to parse file %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("error parsing scenario file")
 	} else {
-		LogI.Printf("loaded scenario %s (%d dataframes)", filepath, len(responder.RawData))
+		log.WithFields(log.Fields{"count": len(responder.RawData)}).Info("scenario loaded successfully")
 	}
 
 	return err
@@ -142,12 +144,12 @@ func (responder *Responder) GetECUResponse(cmd []byte) []byte {
 			responder.playbook.servedDataframe80 = false
 
 			responder.playbook.position = responder.playbook.position + 1
-			LogI.Printf("both dataframes served, indexing to %d of %d", responder.playbook.position, responder.playbook.count)
+			log.WithFields(log.Fields{"index": responder.playbook.position, "count": responder.playbook.count}).Info("both dataframes served from scenario")
 
 			// if we've reached the end then loop back to the start
 			if responder.playbook.position >= responder.playbook.count {
 				responder.playbook.position = 0
-				LogW.Printf("reached end of scenario, restarting from beginning")
+				log.Info("reached end of scenario, restarting from beginning")
 			}
 		}
 	} else {
@@ -183,7 +185,7 @@ func (responder *Responder) generateECUResponse(command string) []byte {
 		copy(r[0:], command)
 	}
 
-	LogI.Printf("generating response %x for %s", r, command)
+	log.WithFields(log.Fields{"response": fmt.Sprintf("%x", r), "command": command}).Info("generated response for command")
 	return r
 }
 

@@ -1,6 +1,8 @@
 package rosco
 
 import (
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"reflect"
 )
 
@@ -78,8 +80,7 @@ func NewMemsDiagnostics() *MemsDiagnostics {
 	diagnostics.Analysis = MemsAnalysisReport{}
 	diagnostics.Stats = make(map[string]Stats)
 
-	LogI.Printf("%s Starting diagnostics", DiagnosticTrace)
-
+	log.WithFields(log.Fields{}).Info("initialised mems diagnostics")
 	return diagnostics
 }
 
@@ -120,7 +121,7 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 	diagnostics.checkIdleAirControl()
 	diagnostics.checkLambdaStatus()
 
-	LogI.Printf("%s Analysed engine data %+v", DiagnosticTrace, diagnostics.Analysis)
+	log.WithFields(log.Fields{"diagnostics": fmt.Sprintf("%+v", diagnostics.Analysis)}).Info("analysed mems data")
 }
 
 // GetDataSetSample retrieves a slice of the dataset for the last n points
@@ -159,7 +160,7 @@ func (diagnostics *MemsDiagnostics) GetMetricStatistics(metricName string) Stats
 
 	// calculate the stats for this sample
 	stats := *NewStats(metricName, metricSample)
-	LogI.Printf("%s Stats for %s : %+v", DiagnosticTrace, metricName, stats)
+	log.WithFields(log.Fields{"diagnostics": fmt.Sprintf("%+v", stats), "metric": metricName}).Info("stats calculated for metric")
 
 	return stats
 }

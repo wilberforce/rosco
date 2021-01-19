@@ -1,13 +1,50 @@
 package tests
 
 import (
+	"fmt"
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
-	"io/ioutil"
-	"log"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
+
+func getLogfilename() string {
+	currentTime := time.Now()
+	dateTime := currentTime.Format("2006-01-02 15:04:05")
+	dateTime = strings.ReplaceAll(dateTime, ":", "")
+	dateTime = strings.ReplaceAll(dateTime, " ", "-")
+	filename := fmt.Sprintf("debug-%s.log", dateTime)
+	return filepath.FromSlash(filename)
+}
+
+func init() {
+	// write logs to file and console
+	filename := getLogfilename()
+
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening log file: %v", err)
+	}
+
+	//mw := io.MultiWriter(os.Stdout, f)
+
+	// Output to stdout instead of the default stderr
+	// and to a log file
+	log.SetOutput(f)
+
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: false,
+	})
+
+	// enable function logging for tests
+	log.SetReportCaller(true)
+}
 
 func getPort(useScenario bool) string {
 	if useScenario {
@@ -16,15 +53,21 @@ func getPort(useScenario bool) string {
 
 	// ensure memsulator is running and change the port
 	// to the ttyecu path
-	return "/Users/ajackson/ttyecu"
+	//return "/Users/ajackson/ttyecu"
+	return "/Users/andrew.jacksonglobalsign.com/ttyecu"
 }
 
 func TestConnectAndInitialise(t *testing.T) {
-	// disable internal logging when running tests
-	log.SetOutput(ioutil.Discard)
+	port := getPort(true)
+	connectAndInitialise(t, port)
+}
 
-	port := getPort(false)
+func TestConnectAndInitialiseScenario(t *testing.T) {
+	port := getPort(true)
+	connectAndInitialise(t, port)
+}
 
+func connectAndInitialise(t *testing.T, port string) {
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
@@ -36,28 +79,26 @@ func TestConnectAndInitialise(t *testing.T) {
 	then.AssertThat(t, mems.Status.Initialised, is.False())
 }
 
-func TestConnectAndInitialiseScenario(t *testing.T) {
-	port := getPort(true)
-
-	mems := rosco.NewMemsConnection()
-	mems.ConnectAndInitialiseECU(port)
-
-	then.AssertThat(t, mems.Status.Connected, is.True())
-	then.AssertThat(t, mems.Status.Initialised, is.True())
-}
-
 func TestScenarioGetDataframe(t *testing.T) {
 	port := getPort(true)
+	getDataframe(t, port)
+}
 
+func TestGetDataframe(t *testing.T) {
+	port := getPort(false)
+	getDataframe(t, port)
+}
+
+func getDataframe(t *testing.T, port string) {
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	data := mems.GetDataframes()
 
-	then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(12.0))
+	then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
 	then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
 	then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
-	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(12.0))
+	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
 }
 
 func TestAdjustSTFT(t *testing.T) {

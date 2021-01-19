@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/tarm/serial"
 )
 
@@ -41,8 +41,6 @@ type MemsConnectionStatus struct {
 // NewMemsConnection creates a new mems structure
 func NewMemsConnection() *MemsConnection {
 	m := &MemsConnection{}
-	//m.TxECU = make(chan MemsCommandResponse)
-	//m.RxECU = make(chan MemsCommandResponse)
 	m.CommandResponse = &MemsCommandResponse{}
 	// engine diagnostics
 	m.Diagnostics = NewMemsDiagnostics()
@@ -69,18 +67,19 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 		mems.connect(port)
 		if mems.Status.Connected {
 			mems.initialise()
+			// update status
+			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
 		}
 	}
-
-	// update status
-	mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
 }
 
 // Disconnect from the ECU
 func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
-	// close the connection
-	_ = mems.SerialPort.Flush()
-	_ = mems.SerialPort.Close()
+	if mems.SerialPort != nil {
+		// close the connection
+		_ = mems.SerialPort.Flush()
+		_ = mems.SerialPort.Close()
+	}
 
 	// update the status
 	mems.Status.Connected = false
@@ -104,36 +103,34 @@ func (mems *MemsConnection) GetStatus() MemsConnectionStatus {
 }
 
 // sendCommandAndWaitResponse sends a command and returns the response
-func (mems *MemsConnection) sendCommandAndWaitResponse(cmd []byte) ([]byte, error) {
-	mems.writeSerial(cmd)
-	response, e := mems.readSerial()
+func (mems *MemsConnection) sendCommandAndWaitResponse(cmd []byte) []byte {
+	var response []byte
 
-	if e != nil {
-		LogW.Printf("%s command send/receive fault %v", ECUResponseTrace, e)
-	}
+	mems.writeSerial(cmd)
+	response = mems.readSerial()
 
 	mems.CommandResponse.Command = cmd
 	mems.CommandResponse.Response = response
 
-	return response, e
+	return response
 }
 
 func (mems *MemsConnection) GetDataframes() MemsData {
-	LogI.Printf("%s getting x7d and x80 dataframes", ECUCommandTrace)
+	log.Info("getting 0x7d and 0x80 dataframes")
 
 	// read the raw dataframes
-	d80, d7d, e := mems.readRawDataFrames()
+	d80, d7d := mems.readRawDataFrames()
 
-	if e != nil {
-		LogE.Printf("%s Unable to create memsdata, corrupt dataframes", ECUResponseTrace)
-	}
+	//if e != nil {
+	//	LogE.Printf("%s Unable to create memsdata, corrupt dataframes", ECUResponseTrace)
+	//}
 
 	// populate the DataFrame structure for command 0x80
 	r := bytes.NewReader(d80)
 	var df80 DataFrame80
 
 	if err := binary.Read(r, binary.BigEndian, &df80); err != nil {
-		LogE.Printf("%s dataframe x80 binary.Read failed: %v", ECUCommandTrace, err)
+		log.WithFields(log.Fields{"error": err}).Info("dataframe x80 binary.Read failed")
 	}
 
 	// populate the DataFrame structure for command 0x7d
@@ -141,7 +138,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	var df7d DataFrame7d
 
 	if err := binary.Read(r, binary.BigEndian, &df7d); err != nil {
-		LogE.Printf("%s dataframe x7d binary.Read failed: %v", ECUCommandTrace, err)
+		log.WithFields(log.Fields{"error": err}).Error("dataframe x7d binary.Read failed")
 	}
 
 	t := time.Now()
@@ -207,35 +204,35 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	mems.Diagnostics.Add(memsdata)
 	mems.Diagnostics.Analyse()
 
-	LogI.Printf("%s built mems dataframe %v", ECUCommandTrace, memsdata)
+	log.WithFields(log.Fields{"memsdata": fmt.Sprintf("%+v", memsdata)}).Info("created mems dataframe")
 
 	return memsdata
 }
 
 func (mems *MemsConnection) SendHeartbeat() bool {
-	return mems.clearState(MEMSHeartbeat)
+	return mems.updateECUState(MEMSHeartbeat)
 }
 
 // ResetAdjustments resets the adjustable values
 func (mems *MemsConnection) ResetAdjustments() bool {
-	return mems.clearState(MEMSResetAdj)
+	return mems.updateECUState(MEMSResetAdj)
 }
 
 // ResetECU clears fault codes. resets adjustable values and learnt values
 func (mems *MemsConnection) ResetECU() bool {
-	return mems.clearState(MEMSResetECU)
+	return mems.updateECUState(MEMSResetECU)
 }
 
 // ClearFaults clears fault codes
 func (mems *MemsConnection) ClearFaults() bool {
-	return mems.clearState(MEMSClearFaults)
+	return mems.updateECUState(MEMSClearFaults)
 }
 
 // GetIACPosition returns the current IAC position
 func (mems *MemsConnection) GetIACPosition() int {
 	var data []byte
 
-	data, _ = mems.sendCommandAndWaitResponse(MEMSGetIACPosition)
+	data = mems.sendCommandAndWaitResponse(MEMSGetIACPosition)
 
 	if len(data) > 1 {
 		return int(data[1])
@@ -340,7 +337,7 @@ func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCo
 	if steps > 0 {
 		for step := 0; step < steps; step++ {
 			cmd = incrementCommand
-			data, _ = mems.sendCommandAndWaitResponse(cmd)
+			data = mems.sendCommandAndWaitResponse(cmd)
 		}
 	}
 
@@ -350,12 +347,14 @@ func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCo
 	if steps < 0 {
 		for step := steps; step < 0; step++ {
 			cmd = decrementCommand
-			data, _ = mems.sendCommandAndWaitResponse(cmd)
+			data = mems.sendCommandAndWaitResponse(cmd)
 		}
 	}
 
 	// ensure we have at least 1 byte returned
 	// before returning the value
+	log.WithFields(log.Fields{"command": cmd, "steps": steps, "data": fmt.Sprintf("%x", data)}).Info("adjustment modified")
+
 	if data != nil {
 		if len(data) > 1 {
 			if cmd[0] == data[0] {
@@ -382,11 +381,12 @@ func (mems *MemsConnection) activateActuator(activateCommand []byte, deactivateC
 		cmd = deactivateCommand
 	}
 
-	data, _ = mems.sendCommandAndWaitResponse(cmd)
+	log.WithFields(log.Fields{"command": cmd, "activate": activate}).Info("activating actuator")
+
+	data = mems.sendCommandAndWaitResponse(cmd)
 
 	if data != nil {
 		if len(data) > 0 {
-			LogI.Printf("--> %d == %d", data[0], cmd[0])
 			return data[0] == cmd[0]
 		}
 	}
@@ -394,16 +394,17 @@ func (mems *MemsConnection) activateActuator(activateCommand []byte, deactivateC
 	return false
 }
 
-// Clears the state for the reset command
+// Updates ECU state, is used to clears the state for the reset commands
+// or emitting a state keep-alive heartbeat
 // Returns success of the operation
-func (mems *MemsConnection) clearState(resetCommand []byte) bool {
-	var data []byte
-
-	data, _ = mems.sendCommandAndWaitResponse(resetCommand)
+func (mems *MemsConnection) updateECUState(command []byte) bool {
+	data := mems.sendCommandAndWaitResponse(command)
 
 	if data != nil {
-		if len(data) > 1 {
-			return data[0] == resetCommand[0]
+		log.WithFields(log.Fields{"command": command, "data": fmt.Sprintf("%x", data), "len": len(data)}).Info("updated ECU state (clear, reset or heartbeat)")
+
+		if len(data) > 0 {
+			return data[0] == command[0]
 		}
 	}
 
@@ -425,20 +426,19 @@ func (mems *MemsConnection) connect(port string) {
 		// connect to the ecu, timeout if we don't get data after a couple of seconds
 		c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
 
-		LogI.Println("opening ", port)
+		log.WithFields(log.Fields{"port": port}).Info("opening serial port")
 
 		s, err = serial.OpenPort(c)
-		if s != nil {
-			mems.SerialPort = s
-		}
 	}
 
-	if err == nil {
-		LogI.Println("connected to ", port)
-		mems.Status.Connected = true
-	} else {
-		LogE.Printf("error opening port (%s)", err)
+	if err != nil {
+		log.WithFields(log.Fields{"port": port, "error": err}).Error("error opening serial port")
 		mems.Status.Connected = false
+		mems.Status.Initialised = false
+	} else {
+		log.WithFields(log.Fields{"port": port}).Info("opened serial port")
+		mems.SerialPort = s
+		mems.Status.Connected = true
 		mems.Status.Initialised = false
 	}
 }
@@ -451,7 +451,13 @@ func (mems *MemsConnection) isScenario(port string) bool {
 
 // checks the first byte of the response against the sent command
 func (mems *MemsConnection) isCommandEcho() bool {
-	return mems.CommandResponse.Command[0] == mems.CommandResponse.Response[0]
+	if mems.CommandResponse.Response != nil {
+		if len(mems.CommandResponse.Response) > 0 {
+			return mems.CommandResponse.Command[0] == mems.CommandResponse.Response[0]
+		}
+	}
+
+	return false
 }
 
 // initialises the connection to the ECU
@@ -471,33 +477,35 @@ func (mems *MemsConnection) initialise() {
 	if mems.Status.Emulated {
 		mems.Status.Initialised = true
 	} else {
-		if mems.SerialPort != nil {
+		if mems.Status.Connected {
 			_ = mems.SerialPort.Flush()
 
 			mems.writeSerial(MEMSInitCommandA)
-			_, _ = mems.readSerial()
+			_ = mems.readSerial()
 
 			mems.writeSerial(MEMSInitCommandB)
-			_, _ = mems.readSerial()
+			_ = mems.readSerial()
 
 			mems.writeSerial(MEMSInitECUID)
-			ECUID, _ := mems.readSerial()
+			ECUID := mems.readSerial()
 			mems.Status.ECUID = fmt.Sprintf("%X", ECUID)
 
 			// get the IAC position
 			mems.writeSerial(MEMSGetIACPosition)
-			response, _ := mems.readSerial()
+			response := mems.readSerial()
 			iac, _ := binary.Uvarint(response)
 			mems.Diagnostics.Analysis.IACPosition = int(iac)
 
 			mems.Status.Initialised = true
 		}
 	}
+
+	log.WithFields(log.Fields{"connected": mems.Status.Connected, "initialised": mems.Status.Initialised}).Info("connected and initialised ECU")
 }
 
 // readSerial read from MEMS
 // read 1 byte at a time until we have all the expected bytes
-func (mems *MemsConnection) readSerial() ([]byte, error) {
+func (mems *MemsConnection) readSerial() []byte {
 	var n int
 	var e error
 
@@ -512,66 +520,67 @@ func (mems *MemsConnection) readSerial() ([]byte, error) {
 	if mems.Status.Emulated {
 		// emulate the response
 		data = mems.responder.GetECUResponse(mems.CommandResponse.Command)
-		LogI.Printf("%s data read for emulation %x", EmulatorTrace, data)
+		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "count": n}).Info("data read for emulation")
 	} else {
-		if mems.SerialPort != nil {
-			// read all the expected bytes before returning the data
-			for count := 0; count < size; {
-				// wait for a response from MEMS
-				n, _ = mems.SerialPort.Read(b)
+		if mems.Status.Connected {
+			if mems.SerialPort != nil {
+				// read all the expected bytes before returning the data
+				for count := 0; count < size; {
+					// wait for a response from MEMS
+					n, e = mems.SerialPort.Read(b)
 
-				if n == 0 {
-					LogW.Printf("serial port read error, timeout?")
-					// drop out of loop, send back a 0x00 byte array response
-					// this prevents the loop getting blocked on a read error
-					count = size
-					data = append(data, b...)
-					e = errors.New("serial port read error")
-				} else {
-					// append the read bytes to the data frame
-					data = append(data, b[:n]...)
-				}
+					if n == 0 {
+						log.WithFields(log.Fields{"error": e}).Warn("serial port read error, timeout?")
+						// drop out of loop, send back a 0x00 byte array response
+						// this prevents the loop getting blocked on a read error
+						count = size
+						data = append(data, b...)
+					} else {
+						// append the read bytes to the data frame
+						data = append(data, b[:n]...)
+					}
 
-				// increment by the number of bytes read
-				count = count + n
-				if count > size {
-					LogW.Printf("%s dataframe size mismatch (received %d, expected %d)", ECUResponseTrace, count, size)
-					e = errors.New("size mismatch")
+					// increment by the number of bytes read
+					count = count + n
+					if count > size {
+						log.WithFields(log.Fields{"received": count, "expected": size}).Warn("dataframe size mismatch")
+					}
 				}
 			}
 		}
 	}
 
-	LogI.Printf("%s received data from ECU [%d] < %x", ECUResponseTrace, n, data)
+	log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "count": n}).Info("received data from ECU")
 	mems.CommandResponse.Response = data
 
 	if !mems.isCommandEcho() {
-		LogW.Printf("%s expecting command echo (%x)\n", ECUResponseTrace, mems.CommandResponse.Command)
-		e = errors.New("command mismatch")
+		log.WithFields(log.Fields{"response": mems.CommandResponse.Response, "expected": mems.CommandResponse.Command}).Warn("expecting command echo")
 	}
 
-	return data, e
+	return data
 }
 
 // writeSerial write to MEMS
 func (mems *MemsConnection) writeSerial(data []byte) {
 	if mems.Status.Emulated {
-		LogI.Printf("%s data stored for emulation %x", EmulatorTrace, data)
+		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data)}).Info("data stored for emulation")
 		mems.CommandResponse.Command = data
 	} else {
-		if mems.SerialPort != nil {
-			// save the sent command
-			mems.CommandResponse.Command = data
+		if mems.Status.Connected {
+			if mems.SerialPort != nil {
+				// save the sent command
+				mems.CommandResponse.Command = data
 
-			// write the response to the code reader
-			n, e := mems.SerialPort.Write(data)
+				// write the response to the code reader
+				n, e := mems.SerialPort.Write(data)
 
-			if e != nil {
-				LogE.Printf("%s error sending data to serial port (%s)", ECUCommandTrace, e)
-			}
+				if e != nil {
+					log.WithFields(log.Fields{"error": e}).Error("error sending data to serial port")
+				}
 
-			if n > 0 {
-				LogI.Printf("%s data sent to serial port %x", ECUCommandTrace, data)
+				if n > 0 {
+					log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data)}).Info("data to serial port")
+				}
 			}
 		}
 	}
@@ -582,22 +591,22 @@ func roundTo2DecimalPoints(x float32) float32 {
 }
 
 // readRawDataFrames reads dataframe 80 and then dataframe 7d as raw byte arrays
-func (mems *MemsConnection) readRawDataFrames() ([]byte, []byte, error) {
+func (mems *MemsConnection) readRawDataFrames() ([]byte, []byte) {
 	mems.writeSerial(MEMSReqData80)
-	dataframe80, e := mems.readSerial()
+	dataframe80 := mems.readSerial()
 
-	if e != nil {
-		LogW.Printf("%s dataframe80 command send/receive fault %v", ECUResponseTrace, e)
-	}
+	//if e != nil {
+	//	LogW.Printf("%s dataframe80 command send/receive fault %v", ECUResponseTrace, e)
+	//}
 
 	mems.writeSerial(MEMSReqData7D)
-	dataframe7d, e := mems.readSerial()
+	dataframe7d := mems.readSerial()
 
-	if e != nil {
-		LogW.Printf("%s dataframe7d command send/receive fault %v", ECUResponseTrace, e)
-	}
+	//if e != nil {
+	//	LogW.Printf("%s dataframe7d command send/receive fault %v", ECUResponseTrace, e)
+	//}
 
-	return dataframe80, dataframe7d, e
+	return dataframe80, dataframe7d
 }
 
 // getResponseSize returns the expected number of bytes for a given command
@@ -617,7 +626,7 @@ func (mems *MemsConnection) getResponseSize(command []byte) int {
 		copy(r[0:], command)
 	}
 
-	LogI.Printf("%s expecting %x (%d)", ECUResponseTrace, r, size)
+	log.WithFields(log.Fields{"command": fmt.Sprintf("%x", r), "response_size": size}).Info("evaluated expected response")
 	return size
 }
 
