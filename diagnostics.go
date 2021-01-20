@@ -247,7 +247,7 @@ func (diagnostics *MemsDiagnostics) checkForVacuumFault() {
 
 func (diagnostics *MemsDiagnostics) checkIdleAirControl() {
 	if diagnostics.Analysis.IsEngineRunning {
-		// IAC fault if the idle offset exceeds the max error, yet the IAC position remains at 0
+		// IAC fault if the idle offset exceeds the max error, yet the IAC Position remains at 0
 		if diagnostics.CurrentData.IdleSpeedDeviation >= maxIdleError && diagnostics.CurrentData.IACPosition == 0 {
 			diagnostics.Analysis.IdleAirControlFault = true
 			diagnostics.Analysis.AnalysisCode = codeStepperMotor
@@ -290,7 +290,7 @@ func (diagnostics *MemsDiagnostics) checkLambdaStatus() {
 
 /**
  * Repeatedly send command to open or close the idle air control valve until
- * it is in the desired position. The valve does not necessarily move one full
+ * it is in the desired Position. The valve does not necessarily move one full
  * step per serial command, depending on the rate at which the commands are
  * issued.
  */
@@ -302,7 +302,7 @@ func (diagnostics *MemsDiagnostics) checkLambdaStatus() {
    uint8_t current_pos = 0;
    actuator_cmd cmd;
 
-   // read the current IAC position, and only take action
+   // read the current IAC Position, and only take action
    // if we're not already at the desired point
    if (mems_read_iac_position(info, &current_pos))
    {

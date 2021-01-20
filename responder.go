@@ -18,15 +18,15 @@ type RawData struct {
 
 // PlaybookResponse type
 type PlaybookResponse struct {
-	dataframe7d []byte
-	dataframe80 []byte
+	Dataframe7d []byte
+	Dataframe80 []byte
 }
 
 // Playbook struct
 type Playbook struct {
-	responses         []PlaybookResponse
-	position          int
-	count             int
+	Responses         []PlaybookResponse
+	Position          int
+	Count             int
 	servedDataframe7d bool
 	servedDataframe80 bool
 }
@@ -34,8 +34,8 @@ type Playbook struct {
 // ScenarioDescription describes the scenario for the ui
 type ScenarioDescription struct {
 	Name       string `json:"name"`
-	Count      int    `json:"count"`
-	Position   int    `json:"position"`
+	Count      int    `json:"Count"`
+	Position   int    `json:"Position"`
 	Status     string `json:"status"`
 	SampleData []int  `json:"sample"`
 }
@@ -44,7 +44,7 @@ type ScenarioDescription struct {
 type Responder struct {
 	file        *os.File
 	RawData     []*RawData
-	playbook    Playbook
+	Playbook    Playbook
 	responseMap map[string][]byte
 }
 
@@ -80,7 +80,7 @@ func (responder *Responder) loadScenarioCSV(filepath string) error {
 	if err = gocsv.Unmarshal(responder.file, &responder.RawData); err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("error parsing scenario file")
 	} else {
-		log.WithFields(log.Fields{"count": len(responder.RawData)}).Info("scenario loaded successfully")
+		log.WithFields(log.Fields{"Count": len(responder.RawData)}).Info("scenario loaded successfully")
 	}
 
 	return err
@@ -91,19 +91,19 @@ func (responder *Responder) LoadScenario(filepath string) error {
 	err := responder.loadScenarioCSV(filepath)
 
 	if err == nil {
-		// reset the position of the playbook
-		responder.playbook.position = 0
-		responder.playbook.count = len(responder.RawData)
-		responder.playbook.servedDataframe7d = false
-		responder.playbook.servedDataframe80 = false
+		// reset the Position of the Playbook
+		responder.Playbook.Position = 0
+		responder.Playbook.Count = len(responder.RawData)
+		responder.Playbook.servedDataframe7d = false
+		responder.Playbook.servedDataframe80 = false
 
-		// iterate the scenario extracting the raw dataframes into a sequential playbook
+		// iterate the scenario extracting the raw dataframes into a sequential Playbook
 		for i := 0; i < len(responder.RawData); i++ {
 			pr := PlaybookResponse{}
-			pr.dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
-			pr.dataframe80 = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe80)
+			pr.Dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
+			pr.Dataframe80 = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe80)
 
-			responder.playbook.responses = append(responder.playbook.responses, pr)
+			responder.Playbook.Responses = append(responder.Playbook.Responses, pr)
 		}
 	}
 
@@ -122,33 +122,33 @@ func (responder *Responder) GetECUResponse(cmd []byte) []byte {
 	// then use the response file
 	if responder.isDataframeRequest(command) {
 
-		position := responder.playbook.position
+		position := responder.Playbook.Position
 
 		if command == "7D" {
-			data = responder.playbook.responses[position].dataframe7d
+			data = responder.Playbook.Responses[position].Dataframe7d
 			// truncate to the right size
 			data = data[:33]
-			responder.playbook.servedDataframe7d = true
+			responder.Playbook.servedDataframe7d = true
 		}
 
 		if command == "80" {
-			data = responder.playbook.responses[position].dataframe80
+			data = responder.Playbook.Responses[position].Dataframe80
 			// truncate to the right size
 			data = data[:29]
-			responder.playbook.servedDataframe80 = true
+			responder.Playbook.servedDataframe80 = true
 		}
 
-		// served both dataframes from this position, index on to the next position
-		if responder.playbook.servedDataframe7d && responder.playbook.servedDataframe80 {
-			responder.playbook.servedDataframe7d = false
-			responder.playbook.servedDataframe80 = false
+		// served both dataframes from this Position, index on to the next Position
+		if responder.Playbook.servedDataframe7d && responder.Playbook.servedDataframe80 {
+			responder.Playbook.servedDataframe7d = false
+			responder.Playbook.servedDataframe80 = false
 
-			responder.playbook.position = responder.playbook.position + 1
-			log.WithFields(log.Fields{"index": responder.playbook.position, "count": responder.playbook.count}).Info("both dataframes served from scenario")
+			responder.Playbook.Position = responder.Playbook.Position + 1
+			log.WithFields(log.Fields{"index": responder.Playbook.Position, "Count": responder.Playbook.Count}).Info("both dataframes served from scenario")
 
 			// if we've reached the end then loop back to the start
-			if responder.playbook.position >= responder.playbook.count {
-				responder.playbook.position = 0
+			if responder.Playbook.Position >= responder.Playbook.Count {
+				responder.Playbook.Position = 0
 				log.Info("reached end of scenario, restarting from beginning")
 			}
 		}
@@ -189,7 +189,7 @@ func (responder *Responder) generateECUResponse(command string) []byte {
 	return r
 }
 
-// build the response map for generated responses
+// build the response map for generated Responses
 func (responder *Responder) buildResponseMap() {
 	// Response formats for commands that do not respond with the format [COMMAND][VALUE]
 	// Generally these are either part of the initialisation sequence or are ECU data frames

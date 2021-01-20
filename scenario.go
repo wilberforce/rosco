@@ -56,8 +56,8 @@ func GetScenario(id string) ScenarioDescription {
 	_ = r.LoadScenario(file)
 
 	scenario := ScenarioDescription{}
-	scenario.Count = r.playbook.count
-	scenario.Position = r.playbook.position
+	scenario.Count = r.Playbook.Count
+	scenario.Position = r.Playbook.Position
 	scenario.Name = id
 
 	return scenario

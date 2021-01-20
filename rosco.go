@@ -228,7 +228,7 @@ func (mems *MemsConnection) ClearFaults() bool {
 	return mems.updateECUState(MEMSClearFaults)
 }
 
-// GetIACPosition returns the current IAC position
+// GetIACPosition returns the current IAC Position
 func (mems *MemsConnection) GetIACPosition() int {
 	var data []byte
 
@@ -490,7 +490,7 @@ func (mems *MemsConnection) initialise() {
 			ECUID := mems.readSerial()
 			mems.Status.ECUID = fmt.Sprintf("%X", ECUID)
 
-			// get the IAC position
+			// get the IAC Position
 			mems.writeSerial(MEMSGetIACPosition)
 			response := mems.readSerial()
 			iac, _ := binary.Uvarint(response)
@@ -520,7 +520,7 @@ func (mems *MemsConnection) readSerial() []byte {
 	if mems.Status.Emulated {
 		// emulate the response
 		data = mems.responder.GetECUResponse(mems.CommandResponse.Command)
-		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "count": n}).Info("data read for emulation")
+		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "Count": n}).Info("data read for emulation")
 	} else {
 		if mems.Status.Connected {
 			if mems.SerialPort != nil {
@@ -550,7 +550,7 @@ func (mems *MemsConnection) readSerial() []byte {
 		}
 	}
 
-	log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "count": n}).Info("received data from ECU")
+	log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "Count": n}).Info("received data from ECU")
 	mems.CommandResponse.Response = data
 
 	if !mems.isCommandEcho() {
@@ -596,14 +596,14 @@ func (mems *MemsConnection) readRawDataFrames() ([]byte, []byte) {
 	dataframe80 := mems.readSerial()
 
 	//if e != nil {
-	//	LogW.Printf("%s dataframe80 command send/receive fault %v", ECUResponseTrace, e)
+	//	LogW.Printf("%s Dataframe80 command send/receive fault %v", ECUResponseTrace, e)
 	//}
 
 	mems.writeSerial(MEMSReqData7D)
 	dataframe7d := mems.readSerial()
 
 	//if e != nil {
-	//	LogW.Printf("%s dataframe7d command send/receive fault %v", ECUResponseTrace, e)
+	//	LogW.Printf("%s Dataframe7d command send/receive fault %v", ECUResponseTrace, e)
 	//}
 
 	return dataframe80, dataframe7d
@@ -664,7 +664,7 @@ func init() {
 	responseMap["0F"] = []byte{0x0f, 0x00} // clear all adjustments
 	responseMap["CC"] = []byte{0xcc, 0x00} // clear faults
 	responseMap["FA"] = []byte{0xfa, 0x00} // clear all computed and learnt settings
-	responseMap["FB"] = []byte{0xfb, 0x80} // Idle Air Control position
+	responseMap["FB"] = []byte{0xfb, 0x80} // Idle Air Control Position
 
 	// actuators
 	responseMap["11"] = []byte{0x11, 0x00} // fuel pump on
@@ -687,7 +687,7 @@ func init() {
 	responseMap["F7"] = []byte{0xf7, 0x03} // test injectors
 	responseMap["F8"] = []byte{0xf8, 0x02} // fire coil
 
-	// unknown command responses
+	// unknown command Responses
 	responseMap["65"] = []byte{0x65, 0x00}
 	responseMap["6D"] = []byte{0x6d, 0x00}
 	responseMap["7E"] = []byte{0x7e, 0x08}
