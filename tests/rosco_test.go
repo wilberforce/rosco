@@ -81,6 +81,11 @@ func connectAndInitialise(t *testing.T, port string) {
 	then.AssertThat(t, mems.Status.Initialised, is.False())
 }
 
+func TestStatusWithoutConnection(t *testing.T) {
+	mems := rosco.NewMemsConnection()
+	then.AssertThat(t, mems.Status.Connected, is.False())
+}
+
 func TestScenarioGetDataframe(t *testing.T) {
 	port := getPort(true)
 	getDataframe(t, port)

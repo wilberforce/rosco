@@ -57,6 +57,8 @@ func NewMemsConnection() *MemsConnection {
 
 // ConnectAndInitialiseECU connect and initialise the ECU
 func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
+	log.Infof("connecting to %s and initialising ecu", port)
+
 	if mems.isScenario(port) {
 		// emulate ECU if scenario file is supplied
 		mems.Status.Emulated = true
@@ -67,6 +69,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 		mems.connect(port)
 		if mems.Status.Connected {
 			mems.initialise()
+			log.Info("ecu connected and initialised successfully")
 			// update status
 			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
 		}
@@ -75,6 +78,8 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 
 // Disconnect from the ECU
 func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
+	log.Info("disconnecting ecu")
+
 	if mems.SerialPort != nil {
 		// close the connection
 		_ = mems.SerialPort.Flush()
@@ -94,11 +99,13 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 // ResetDiagnostics clears and resets the diagnostic data
 func (mems *MemsConnection) ResetDiagnostics() {
 	// update the status
+	log.Info("resetting ecu diagnostics")
 	mems.Diagnostics = NewMemsDiagnostics()
 }
 
 // GetStatus returns the connection and ECU status
 func (mems *MemsConnection) GetStatus() MemsConnectionStatus {
+	log.Infof("getting ecu status (%+v)", mems.Status)
 	return *mems.Status
 }
 
@@ -210,21 +217,25 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 }
 
 func (mems *MemsConnection) SendHeartbeat() bool {
+	log.Info("sending ecu heartbeat")
 	return mems.updateECUState(MEMSHeartbeat)
 }
 
 // ResetAdjustments resets the adjustable values
 func (mems *MemsConnection) ResetAdjustments() bool {
+	log.Info("resetting  ecu adjustable values ")
 	return mems.updateECUState(MEMSResetAdj)
 }
 
 // ResetECU clears fault codes. resets adjustable values and learnt values
 func (mems *MemsConnection) ResetECU() bool {
+	log.Info("resetting ecu")
 	return mems.updateECUState(MEMSResetECU)
 }
 
 // ClearFaults clears fault codes
 func (mems *MemsConnection) ClearFaults() bool {
+	log.Info("clearing ecu recorded faults ")
 	return mems.updateECUState(MEMSClearFaults)
 }
 
@@ -232,11 +243,14 @@ func (mems *MemsConnection) ClearFaults() bool {
 func (mems *MemsConnection) GetIACPosition() int {
 	var data []byte
 
+	log.Info("reading ecu iac position ")
 	data = mems.sendCommandAndWaitResponse(MEMSGetIACPosition)
 
 	if len(data) > 1 {
+		log.Infof("ecu iac position, received (%s)", fmt.Sprintf("%x", data))
 		return int(data[1])
 	} else {
+		log.Warnf("ecu iac position invalid, received (%s)", fmt.Sprintf("%x", data))
 		return MEMSIACPositionDefault
 	}
 }
@@ -335,8 +349,9 @@ func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCo
 	// by n steps.
 	// ignore all but the last value reading
 	if steps > 0 {
+		cmd = incrementCommand
+		log.Infof("incrementing adjustable command %s by %d steps", fmt.Sprintf("%x", data), steps)
 		for step := 0; step < steps; step++ {
-			cmd = incrementCommand
 			data = mems.sendCommandAndWaitResponse(cmd)
 		}
 	}
@@ -345,8 +360,9 @@ func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCo
 	// by n steps.
 	// ignore all but the last value reading
 	if steps < 0 {
+		cmd = decrementCommand
+		log.Infof("decrementing adjustable command %s by %d steps", fmt.Sprintf("%x", data), steps)
 		for step := steps; step < 0; step++ {
-			cmd = decrementCommand
 			data = mems.sendCommandAndWaitResponse(cmd)
 		}
 	}
@@ -387,6 +403,11 @@ func (mems *MemsConnection) activateActuator(activateCommand []byte, deactivateC
 
 	if data != nil {
 		if len(data) > 0 {
+			if activate {
+				log.Info("actuator activated")
+			} else {
+				log.Info("actuator deactivated")
+			}
 			return data[0] == cmd[0]
 		}
 	}
@@ -622,11 +643,13 @@ func (mems *MemsConnection) getResponseSize(command []byte) int {
 	if r != nil {
 		size = len(r)
 	} else {
+		log.Warn("unable to find a matching response in the map, assuming 2 byte response")
 		r = responseMap["00"]
 		copy(r[0:], command)
 	}
 
-	log.WithFields(log.Fields{"command": fmt.Sprintf("%x", r), "response_size": size}).Info("evaluated expected response")
+	log.Infof("mapped command %s, expecting a response of %d bytes", fmt.Sprintf("%x", r), size)
+
 	return size
 }
 
