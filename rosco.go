@@ -26,6 +26,7 @@ type MemsConnection struct {
 	CommandResponse *MemsCommandResponse
 	Diagnostics     *MemsDiagnostics
 	responder       *Responder
+	datalogger      *MemsDataLogger
 	Status          *MemsConnectionStatus
 }
 
@@ -72,6 +73,8 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 			log.Info("ecu connected and initialised successfully")
 			// update status
 			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
+			// create a data log file
+			mems.datalogger = NewMemsDataLogger(mems.Status.ECUID)
 		}
 	}
 }
@@ -92,6 +95,8 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 	mems.Status.Emulated = false
 	mems.Status.ECUID = ""
 	mems.Status.IACPosition = 0
+
+	mems.datalogger.Close()
 
 	return *mems.Status
 }
@@ -212,6 +217,9 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	mems.Diagnostics.Analyse()
 
 	log.WithFields(log.Fields{"memsdata": fmt.Sprintf("%+v", memsdata)}).Info("created mems dataframe")
+
+	// write to the log file
+	go mems.datalogger.WriteMemsDataToFile(memsdata)
 
 	return memsdata
 }
