@@ -25,9 +25,10 @@ type MemsConnection struct {
 	SerialPort      *serial.Port
 	CommandResponse *MemsCommandResponse
 	Diagnostics     *MemsDiagnostics
+	Status          *MemsConnectionStatus
 	responder       *Responder
 	datalogger      *MemsDataLogger
-	Status          *MemsConnectionStatus
+	logfolder       string
 }
 
 // MemsConnectionStatus are we?
@@ -40,7 +41,7 @@ type MemsConnectionStatus struct {
 }
 
 // NewMemsConnection creates a new mems structure
-func NewMemsConnection() *MemsConnection {
+func NewMemsConnection(logfolder string) *MemsConnection {
 	m := &MemsConnection{}
 	m.CommandResponse = &MemsCommandResponse{}
 	// engine diagnostics
@@ -52,6 +53,7 @@ func NewMemsConnection() *MemsConnection {
 	m.Status.Emulated = false
 	m.Status.ECUID = ""
 	m.Status.IACPosition = m.Diagnostics.Analysis.IACPosition
+	m.logfolder = logfolder
 
 	return m
 }
@@ -74,7 +76,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 			// update status
 			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
 			// create a data log file
-			mems.datalogger = NewMemsDataLogger(mems.Status.ECUID)
+			mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
 		}
 	}
 }

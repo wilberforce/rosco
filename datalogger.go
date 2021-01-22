@@ -2,7 +2,6 @@ package rosco
 
 import (
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -19,15 +18,10 @@ type MemsDataLogger struct {
 }
 
 // NewMemsDataLogger logs the mems data to a CSV file
-func NewMemsDataLogger(prefix string) *MemsDataLogger {
+func NewMemsDataLogger(logfolder string, prefix string) *MemsDataLogger {
 	logger := &MemsDataLogger{}
 
-	// get the users home directory
-	dir, _ := homedir.Dir()
-	home := filepath.FromSlash(dir)
-	folder := fmt.Sprintf("%s/memsfcr/logs/", home)
-	logger.logFolder = filepath.FromSlash(folder)
-
+	logger.logFolder = filepath.FromSlash(logfolder)
 	logger.setFilename(prefix)
 
 	log.Infof("opening data log file '%s'", logger.logFolder)
@@ -66,7 +60,7 @@ func (logger *MemsDataLogger) setFilename(prefix string) {
 	dateTime = strings.ReplaceAll(dateTime, ":", "")
 	dateTime = strings.ReplaceAll(dateTime, " ", "-")
 
-	filename := fmt.Sprintf("%s/%s%s.csv", logger.logFolder, prefix, dateTime)
+	filename := fmt.Sprintf("%s/%s-%s.csv", logger.logFolder, prefix, dateTime)
 	logger.Filename = filepath.FromSlash(filename)
 }
 
