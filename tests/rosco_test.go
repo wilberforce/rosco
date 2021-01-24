@@ -44,7 +44,7 @@ func init() {
 	})
 
 	// enable function logging for tests
-	log.SetReportCaller(true)
+	//log.SetReportCaller(true)
 }
 
 func getPort(useScenario bool) string {
@@ -104,6 +104,7 @@ func getDataframe(t *testing.T, port string) {
 	data := mems.GetDataframes()
 
 	then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+	then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
 	then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
 	then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
 	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))

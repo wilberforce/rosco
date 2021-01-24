@@ -42,7 +42,9 @@ func NewMemsDataLogger(logfolder string, prefix string) *MemsDataLogger {
 
 // WriteMemsDataToFile writes the mems data structure to a file
 func (logger *MemsDataLogger) WriteMemsDataToFile(memsdata MemsData) {
-	logger.writeCSVData(memsdata)
+	if logger.isOpen {
+		logger.writeCSVData(memsdata)
+	}
 }
 
 func (logger *MemsDataLogger) Close() {
@@ -98,14 +100,16 @@ func (logger *MemsDataLogger) openFile() {
 // writeToFile will print any string of text to a file safely by
 // checking for errors and syncing at the end.
 func (logger *MemsDataLogger) writeToFile(data string) {
-	var err error
+	if logger.isOpen {
+		var err error
 
-	if _, err = logger.logfile.WriteString(data); err != nil {
-		log.Errorf("unable to write to file '%s' (%s)", logger.Filename, err)
+		if _, err = logger.logfile.WriteString(data); err != nil {
+			log.Errorf("unable to write to file '%s' (%s)", logger.Filename, err)
+		}
+
+		log.Infof("wrote to log '%s'", data)
+		_ = logger.logfile.Sync()
 	}
-
-	log.Infof("wrote to log '%s'", data)
-	_ = logger.logfile.Sync()
 }
 
 func (logger *MemsDataLogger) writeCSVHeader() {
@@ -184,8 +188,9 @@ func (logger *MemsDataLogger) writeCSVData(data MemsData) {
 		data.Uk7d1d,
 		data.Uk7d1e,
 		data.JackCount,
-		data.Dataframe7d,
-		data.Dataframe80)
+		strings.ToUpper(data.Dataframe7d),
+		strings.ToUpper(data.Dataframe80),
+	)
 
 	logger.writeToFile(s)
 }

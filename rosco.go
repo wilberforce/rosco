@@ -63,6 +63,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 	log.Infof("connecting to %s and initialising ecu", port)
 
 	if mems.isScenario(port) {
+		log.Info("ecu connected and initialised in emulation mode")
 		// emulate ECU if scenario file is supplied
 		mems.Status.Emulated = true
 		mems.responder = NewResponder()
@@ -75,8 +76,11 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 			log.Info("ecu connected and initialised successfully")
 			// update status
 			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
-			// create a data log file
-			mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
+
+			if !mems.Status.Emulated {
+				// create a data log file
+				mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
+			}
 		}
 	}
 }
@@ -91,14 +95,16 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 		_ = mems.SerialPort.Close()
 	}
 
+	if !mems.Status.Emulated {
+		mems.datalogger.Close()
+	}
+
 	// update the status
 	mems.Status.Connected = false
 	mems.Status.Initialised = false
 	mems.Status.Emulated = false
 	mems.Status.ECUID = ""
 	mems.Status.IACPosition = 0
-
-	mems.datalogger.Close()
 
 	return *mems.Status
 }
@@ -145,6 +151,8 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 
 	if err := binary.Read(r, binary.BigEndian, &df80); err != nil {
 		log.WithFields(log.Fields{"error": err}).Info("dataframe x80 binary.Read failed")
+	} else {
+		log.Infof("dataframe x80 received (data: %s dataframe: %s)", fmt.Sprintf("%x", r), fmt.Sprintf("%+v", df80))
 	}
 
 	// populate the DataFrame structure for command 0x7d
@@ -153,6 +161,8 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 
 	if err := binary.Read(r, binary.BigEndian, &df7d); err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("dataframe x7d binary.Read failed")
+	} else {
+		log.Infof("dataframe x7d received (data: %s dataframe: %s)", fmt.Sprintf("%x", r), fmt.Sprintf("%+v", df7d))
 	}
 
 	t := time.Now()
@@ -203,7 +213,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 		IdleBasePosition:         int(df7d.IdleBasePos),
 		DTC4:                     df7d.Dtc4,
 		IgnitionAdvanceOffset7d:  int(df7d.IgnitionAdvanceOffset7d) - 48,
-		IdleSpeedOffset:          (int(df7d.IdleSpeedOffset) - 128) * 25,
+		IdleSpeedOffset:          int(df7d.IdleSpeedOffset), // - 128) * 25,
 		DTC5:                     df7d.Dtc5,
 		JackCount:                int(df7d.JackCount),
 		Dataframe80:              hex.EncodeToString(d80),
