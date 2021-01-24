@@ -220,8 +220,10 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 
 	log.WithFields(log.Fields{"memsdata": fmt.Sprintf("%+v", memsdata)}).Info("created mems dataframe")
 
-	// write to the log file
-	go mems.datalogger.WriteMemsDataToFile(memsdata)
+	if !mems.Status.Emulated {
+		// write to the log file
+		go mems.datalogger.WriteMemsDataToFile(memsdata)
+	}
 
 	return memsdata
 }
