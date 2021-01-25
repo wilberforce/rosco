@@ -59,6 +59,13 @@ func getPort(useScenario bool) string {
 	return filepath.FromSlash(path)
 }
 
+func TestGetScenarios(t *testing.T) {
+	scenarios, err := rosco.GetScenarios()
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, len(scenarios), is.GreaterThan(0))
+}
+
 func TestConnectAndInitialise(t *testing.T) {
 	port := getPort(true)
 	connectAndInitialise(t, port)

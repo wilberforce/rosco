@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gocarina/gocsv"
 )
@@ -33,11 +34,12 @@ type Playbook struct {
 
 // ScenarioDescription describes the scenario for the ui
 type ScenarioDescription struct {
-	Name       string `json:"name"`
-	Count      int    `json:"Count"`
-	Position   int    `json:"Position"`
-	Status     string `json:"status"`
-	SampleData []int  `json:"sample"`
+	Name       string    `json:"name"`
+	Count      int       `json:"Count"`
+	Position   int       `json:"Position"`
+	Status     string    `json:"status"`
+	Date       time.Time `json:"Date"`
+	SampleData []int     `json:"sample"`
 }
 
 // Responder struct
