@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -66,6 +67,11 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 		log.Info("ecu connected and initialised in emulation mode")
 		// emulate ECU if scenario file is supplied
 		mems.Status.Emulated = true
+
+		// expand to full path
+		port = fmt.Sprintf("%s/%s", mems.logfolder, port)
+		port = filepath.FromSlash(port)
+
 		mems.responder = NewResponder()
 	}
 

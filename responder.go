@@ -47,7 +47,6 @@ type Responder struct {
 	file     *os.File
 	RawData  []*RawData
 	Playbook Playbook
-	//responseMap map[string][]byte
 }
 
 // NewResponder creates an instance of a responder
