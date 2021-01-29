@@ -306,11 +306,8 @@ func TestActuators(t *testing.T) {
 	value = mems.TestFan1(true)
 	then.AssertThat(t, value, is.True())
 
-	// Testing Fan1 deactivate command causes issues on the emulated
-	// serial port, assume this is a special character
-
-	//value = mems.TestFan1(false)
-	//then.AssertThat(t, value, is.True())
+	value = mems.TestFan1(false)
+	then.AssertThat(t, value, is.True())
 
 	value = mems.TestFan2(true)
 	then.AssertThat(t, value, is.True())
