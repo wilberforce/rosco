@@ -5,13 +5,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	serial "go.bug.st/serial.v1"
 	"math"
 	"path/filepath"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tarm/serial"
 )
 
 // MemsCommandResponse communication pair
@@ -23,7 +23,7 @@ type MemsCommandResponse struct {
 
 // MemsConnection communication structure for MEMS
 type MemsConnection struct {
-	SerialPort      serial.Port
+	SerialPort      *serial.Port
 	CommandResponse *MemsCommandResponse
 	Diagnostics     *MemsDiagnostics
 	Status          *MemsConnectionStatus
@@ -97,6 +97,7 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 
 	if mems.SerialPort != nil {
 		// close the connection
+		_ = mems.SerialPort.Flush()
 		_ = mems.SerialPort.Close()
 	}
 
@@ -462,7 +463,7 @@ func (mems *MemsConnection) updateECUState(command []byte) bool {
 // connect to MEMS via serial port
 func (mems *MemsConnection) connect(port string) {
 	var err error
-	var s serial.Port
+	var s *serial.Port
 
 	// assume not connected or initialised
 	mems.Status.Connected = false
@@ -472,11 +473,10 @@ func (mems *MemsConnection) connect(port string) {
 		err = mems.responder.LoadScenario(port)
 	} else {
 		// connect to the ecu, timeout if we don't get data after a couple of seconds
-		// c := &serial.Mode{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
-		c := &serial.Mode{BaudRate: 9600, Parity: serial.NoParity, DataBits: 8, StopBits: serial.OneStopBit}
+		c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
 
 		log.WithFields(log.Fields{"port": port}).Info("opening serial port")
-		s, err = serial.Open(port, c)
+		s, err = serial.OpenPort(c)
 	}
 
 	if err != nil {
@@ -526,6 +526,8 @@ func (mems *MemsConnection) initialise() {
 		mems.Status.Initialised = true
 	} else {
 		if mems.Status.Connected {
+			_ = mems.SerialPort.Flush()
+
 			mems.writeSerial(MEMSInitCommandA)
 			_ = mems.readSerial()
 

@@ -2,16 +2,18 @@ package tests
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-	"time"
 )
 
 func getLogfilename() string {
@@ -52,11 +54,21 @@ func getPort(useScenario bool) string {
 		return "scenario.csv"
 	}
 
-	// ensure memsulator is running for tests to pass
-	homeFolder, _ := homedir.Dir()
-	path := fmt.Sprintf("%s/ttyecu", homeFolder)
+	if runtime.GOOS == "darwin" {
+		// ensure memsulator is running for tests to pass
+		homeFolder, _ := homedir.Dir()
+		path := fmt.Sprintf("%s/ttyecu", homeFolder)
+		log.Infof("using port %s", path)
+		return filepath.FromSlash(path)
+	}
 
-	return filepath.FromSlash(path)
+	if runtime.GOOS == "windows" {
+		path := "COM1"
+		log.Infof("using port %s", path)
+		return path
+	}
+
+	return ""
 }
 
 func TestGetScenarios(t *testing.T) {
@@ -67,7 +79,7 @@ func TestGetScenarios(t *testing.T) {
 }
 
 func TestConnectAndInitialise(t *testing.T) {
-	port := getPort(true)
+	port := getPort(false)
 	connectAndInitialise(t, port)
 }
 
