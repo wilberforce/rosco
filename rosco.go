@@ -529,22 +529,34 @@ func (mems *MemsConnection) initialise() {
 			_ = mems.SerialPort.Flush()
 
 			mems.writeSerial(MEMSInitCommandA)
-			_ = mems.readSerial()
-
-			mems.writeSerial(MEMSInitCommandB)
-			_ = mems.readSerial()
-
-			mems.writeSerial(MEMSInitECUID)
-			ECUID := mems.readSerial()
-			mems.Status.ECUID = fmt.Sprintf("%X", ECUID)
-
-			// get the IAC Position
-			mems.writeSerial(MEMSGetIACPosition)
 			response := mems.readSerial()
-			iac, _ := binary.Uvarint(response)
-			mems.Diagnostics.Analysis.IACPosition = int(iac)
+			log.Infof("init resp %+v", response)
 
-			mems.Status.Initialised = true
+			// if we get the command echoed back we can assume
+			// a good connection and proceed. This is to work around the issue
+			// in Windows where the port always connects even if it's not available.
+			if response[0] == MEMSInitCommandA[0] {
+				mems.writeSerial(MEMSInitCommandB)
+				_ = mems.readSerial()
+
+				mems.writeSerial(MEMSInitECUID)
+				ECUID := mems.readSerial()
+				mems.Status.ECUID = fmt.Sprintf("%X", ECUID)
+
+				// get the IAC Position
+				mems.writeSerial(MEMSGetIACPosition)
+				response := mems.readSerial()
+				iac, _ := binary.Uvarint(response)
+				mems.Diagnostics.Analysis.IACPosition = int(iac)
+
+				mems.Status.Initialised = true
+			} else {
+				log.Warn("timed out on intialisation sequence, closing connection")
+				mems.SerialPort.Flush()
+				mems.SerialPort.Close()
+				mems.Status.Connected = false
+				mems.Status.Initialised = false
+			}
 		}
 	}
 
