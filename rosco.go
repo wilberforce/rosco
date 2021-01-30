@@ -76,16 +76,22 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 	}
 
 	if !mems.Status.Connected {
-		mems.connect(port)
-		if mems.Status.Connected {
-			mems.initialise()
-			log.Info("ecu connected and initialised successfully")
-			// update status
-			mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
 
-			if !mems.Status.Emulated {
-				// create a data log file
-				mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
+		mems.connect(port)
+
+		if mems.Status.Connected {
+
+			mems.initialise()
+
+			if mems.Status.Initialised {
+				log.Info("ecu connected and initialised successfully")
+				// update status
+				mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
+
+				if !mems.Status.Emulated {
+					// create a data log file
+					mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
+				}
 			}
 		}
 	}
