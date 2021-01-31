@@ -237,10 +237,12 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	mems.CommandResponse.Response = MEMSDataFrame
 	mems.CommandResponse.MemsDataFrame = memsdata
 
-	mems.Diagnostics.Add(memsdata)
-	mems.Diagnostics.Analyse()
+	/*
+		mems.Diagnostics.Add(memsdata)
+		mems.Diagnostics.Analyse()
+	*/
 
-	log.WithFields(log.Fields{"memsdata": fmt.Sprintf("%+v", memsdata)}).Info("created mems dataframe")
+	log.Infof("generated mems data from dataframe (%+v)", memsdata)
 
 	if !mems.Status.Emulated {
 		// write to the log file
@@ -481,19 +483,19 @@ func (mems *MemsConnection) connect(port string) {
 		// connect to the ecu, timeout if we don't get data after a couple of seconds
 		c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
 
-		log.WithFields(log.Fields{"port": port}).Info("opening serial port")
+		log.Infof("attempting to open serial port %s", port)
 		s, err = serial.OpenPort(c)
 	}
 
 	if err != nil {
-		log.WithFields(log.Fields{"port": port, "error": err}).Error("error opening serial port")
+		log.Errorf("error opening serial port (%s) status : (%+v)", err, mems.Status)
 		mems.Status.Connected = false
 		mems.Status.Initialised = false
 	} else {
-		log.WithFields(log.Fields{"port": port}).Info("opened serial port")
 		mems.SerialPort = s
 		mems.Status.Connected = true
 		mems.Status.Initialised = false
+		log.Errorf("opened serial port %s (%+v)", port, mems.Status)
 	}
 }
 
@@ -545,6 +547,9 @@ func (mems *MemsConnection) initialise() {
 				mems.writeSerial(MEMSInitCommandB)
 				_ = mems.readSerial()
 
+				mems.writeSerial(MEMSHeartbeat)
+				_ = mems.readSerial()
+
 				mems.writeSerial(MEMSInitECUID)
 				ECUID := mems.readSerial()
 				mems.Status.ECUID = fmt.Sprintf("%X", ECUID)
@@ -557,7 +562,7 @@ func (mems *MemsConnection) initialise() {
 
 				mems.Status.Initialised = true
 			} else {
-				log.Warn("timed out on intialisation sequence, closing connection")
+				log.Error("timed out on intialisation sequence, closing connection")
 				mems.SerialPort.Flush()
 				mems.SerialPort.Close()
 				mems.Status.Connected = false
@@ -586,7 +591,7 @@ func (mems *MemsConnection) readSerial() []byte {
 	if mems.Status.Emulated {
 		// emulate the response
 		data = mems.responder.GetECUResponse(mems.CommandResponse.Command)
-		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "Count": n}).Info("data read for emulation")
+		log.Infof("read scenario data (%+v), %d bytes", data, n)
 	} else {
 		if mems.Status.Connected {
 			if mems.SerialPort != nil {
@@ -596,7 +601,7 @@ func (mems *MemsConnection) readSerial() []byte {
 					n, e = mems.SerialPort.Read(b)
 
 					if n == 0 {
-						log.WithFields(log.Fields{"error": e}).Warn("serial port read error, timeout?")
+						log.Errorf("0 bytes received, serial port read error, timeout? (%s)", e)
 						// drop out of loop, send back a 0x00 byte array response
 						// this prevents the loop getting blocked on a read error
 						count = size
@@ -609,18 +614,18 @@ func (mems *MemsConnection) readSerial() []byte {
 					// increment by the number of bytes read
 					count = count + n
 					if count > size {
-						log.WithFields(log.Fields{"received": count, "expected": size}).Warn("dataframe size mismatch")
+						log.Errorf("received dataframe size mismatch, received %d, expected %d", count, size)
 					}
 				}
 			}
 		}
 	}
 
-	log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data), "Count": n}).Info("received data from ECU")
+	log.Infof("received data from ecu (%x), %d bytes", data, n)
 	mems.CommandResponse.Response = data
 
 	if !mems.isCommandEcho() {
-		log.WithFields(log.Fields{"response": mems.CommandResponse.Response, "expected": mems.CommandResponse.Command}).Warn("expecting command echo")
+		log.Warnf("expecting command echo of %x, recevied %x", mems.CommandResponse.Response, mems.CommandResponse.Command)
 	}
 
 	return data
