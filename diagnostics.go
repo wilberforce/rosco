@@ -1,7 +1,6 @@
 package rosco
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )
@@ -79,8 +78,6 @@ func NewMemsDiagnostics() *MemsDiagnostics {
 	diagnostics.Dataset = []MemsData{}
 	diagnostics.Analysis = MemsAnalysisReport{}
 	diagnostics.Stats = make(map[string]Stats)
-
-	log.WithFields(log.Fields{}).Info("initialised mems diagnostics")
 	return diagnostics
 }
 
@@ -92,36 +89,40 @@ func (diagnostics *MemsDiagnostics) Add(data MemsData) {
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
-	// work with a sample of the last n seconds of data
-	diagnostics.Sample = diagnostics.GetDataSetSample(maxSamples)
+	if len(diagnostics.Dataset) > 0 {
+		// work with a sample of the last n seconds of data
+		diagnostics.Sample = diagnostics.GetDataSetSample(maxSamples)
 
-	// get samples and associated stats for named metrics
-	diagnostics.Stats["CoolantTemp"] = diagnostics.GetMetricStatistics("CoolantTemp")
-	diagnostics.Stats["EngineRPM"] = diagnostics.GetMetricStatistics("EngineRPM")
-	diagnostics.Stats["ManifoldAbsolutePressure"] = diagnostics.GetMetricStatistics("ManifoldAbsolutePressure")
-	diagnostics.Stats["LambdaVoltage"] = diagnostics.GetMetricStatistics("LambdaVoltage")
-	diagnostics.Stats["AirFuelRatio"] = diagnostics.GetMetricStatistics("AirFuelRatio")
-	diagnostics.Stats["IACPosition"] = diagnostics.GetMetricStatistics("IACPosition")
+		// get samples and associated stats for named metrics
+		diagnostics.Stats["CoolantTemp"] = diagnostics.GetMetricStatistics("CoolantTemp")
+		diagnostics.Stats["EngineRPM"] = diagnostics.GetMetricStatistics("EngineRPM")
+		diagnostics.Stats["ManifoldAbsolutePressure"] = diagnostics.GetMetricStatistics("ManifoldAbsolutePressure")
+		diagnostics.Stats["LambdaVoltage"] = diagnostics.GetMetricStatistics("LambdaVoltage")
+		diagnostics.Stats["AirFuelRatio"] = diagnostics.GetMetricStatistics("AirFuelRatio")
+		diagnostics.Stats["IACPosition"] = diagnostics.GetMetricStatistics("IACPosition")
 
-	// default analysis outcome
-	diagnostics.Analysis.AnalysisCode = codeOptimal
+		// default analysis outcome
+		diagnostics.Analysis.AnalysisCode = codeOptimal
 
-	// apply ECU detected faults
-	diagnostics.Analysis.CoolantTempSensorFault = diagnostics.CurrentData.CoolantTempSensorFault
-	diagnostics.Analysis.FuelPumpCircuitFault = diagnostics.CurrentData.FuelPumpCircuitFault
-	diagnostics.Analysis.ThrottlePotCircuitFault = diagnostics.CurrentData.ThrottlePotCircuitFault
-	diagnostics.Analysis.IntakeAirTempSensorFault = diagnostics.CurrentData.IntakeAirTempSensorFault
+		// apply ECU detected faults
+		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.CurrentData.CoolantTempSensorFault
+		diagnostics.Analysis.FuelPumpCircuitFault = diagnostics.CurrentData.FuelPumpCircuitFault
+		diagnostics.Analysis.ThrottlePotCircuitFault = diagnostics.CurrentData.ThrottlePotCircuitFault
+		diagnostics.Analysis.IntakeAirTempSensorFault = diagnostics.CurrentData.IntakeAirTempSensorFault
 
-	// check the status of the sensors and running parameters
-	diagnostics.checkIsEngineRunning()
-	diagnostics.checkIsEngineWarm()
-	diagnostics.checkIsEngineIdle()
-	diagnostics.checkMapSensor()
-	diagnostics.checkForExpectedClosedLoop()
-	diagnostics.checkIdleAirControl()
-	diagnostics.checkLambdaStatus()
+		// check the status of the sensors and running parameters
+		diagnostics.checkIsEngineRunning()
+		diagnostics.checkIsEngineWarm()
+		diagnostics.checkIsEngineIdle()
+		diagnostics.checkMapSensor()
+		diagnostics.checkForExpectedClosedLoop()
+		diagnostics.checkIdleAirControl()
+		diagnostics.checkLambdaStatus()
 
-	log.WithFields(log.Fields{"diagnostics": fmt.Sprintf("%+v", diagnostics.Analysis)}).Info("analysed mems data")
+		log.Infof("diagnostics %+v", diagnostics.Analysis)
+	} else {
+		log.Warnf("No sample data to perform diagnostics")
+	}
 }
 
 // GetDataSetSample retrieves a slice of the dataset for the last n points
@@ -160,8 +161,7 @@ func (diagnostics *MemsDiagnostics) GetMetricStatistics(metricName string) Stats
 
 	// calculate the stats for this sample
 	stats := *NewStats(metricName, metricSample)
-	log.WithFields(log.Fields{"diagnostics": fmt.Sprintf("%+v", stats), "metric": metricName}).Info("stats calculated for metric")
-
+	log.Debugf("stats for %s, %+v", metricName, stats)
 	return stats
 }
 
