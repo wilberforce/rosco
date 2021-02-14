@@ -60,12 +60,12 @@ type MemsAnalysisReport struct {
 
 // MemsDiagnostics structure
 type MemsDiagnostics struct {
-	// CurrentData is the lastest reading
-	CurrentData MemsData
+	// currentData is the lastest reading
+	currentData MemsData
 	// Full DataSet of mems data
-	Dataset []MemsData
-	// Sample contains the last n readings
-	Sample []MemsData
+	dataset []MemsData
+	// sample contains the last n readings
+	sample []MemsData
 	// Stats of the sample
 	Stats map[string]Stats
 	// Analysis report
@@ -75,7 +75,7 @@ type MemsDiagnostics struct {
 // NewMemsDiagnostics generates diagnostic reports
 func NewMemsDiagnostics() *MemsDiagnostics {
 	diagnostics := &MemsDiagnostics{}
-	diagnostics.Dataset = []MemsData{}
+	diagnostics.dataset = []MemsData{}
 	diagnostics.Analysis = MemsAnalysisReport{}
 	diagnostics.Stats = make(map[string]Stats)
 	return diagnostics
@@ -83,15 +83,15 @@ func NewMemsDiagnostics() *MemsDiagnostics {
 
 // Add data to the data set for diagnosis
 func (diagnostics *MemsDiagnostics) Add(data MemsData) {
-	diagnostics.CurrentData = data
-	diagnostics.Dataset = append(diagnostics.Dataset, data)
+	diagnostics.currentData = data
+	diagnostics.dataset = append(diagnostics.dataset, data)
 }
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
-	if len(diagnostics.Dataset) > 0 {
+	if len(diagnostics.dataset) > 0 {
 		// work with a sample of the last n seconds of data
-		diagnostics.Sample = diagnostics.GetDataSetSample(maxSamples)
+		diagnostics.sample = diagnostics.GetDataSetSample(maxSamples)
 
 		// get samples and associated stats for named metrics
 		diagnostics.Stats["CoolantTemp"] = diagnostics.GetMetricStatistics("CoolantTemp")
@@ -105,10 +105,10 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.Analysis.AnalysisCode = codeOptimal
 
 		// apply ECU detected faults
-		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.CurrentData.CoolantTempSensorFault
-		diagnostics.Analysis.FuelPumpCircuitFault = diagnostics.CurrentData.FuelPumpCircuitFault
-		diagnostics.Analysis.ThrottlePotCircuitFault = diagnostics.CurrentData.ThrottlePotCircuitFault
-		diagnostics.Analysis.IntakeAirTempSensorFault = diagnostics.CurrentData.IntakeAirTempSensorFault
+		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.currentData.CoolantTempSensorFault
+		diagnostics.Analysis.FuelPumpCircuitFault = diagnostics.currentData.FuelPumpCircuitFault
+		diagnostics.Analysis.ThrottlePotCircuitFault = diagnostics.currentData.ThrottlePotCircuitFault
+		diagnostics.Analysis.IntakeAirTempSensorFault = diagnostics.currentData.IntakeAirTempSensorFault
 
 		// check the status of the sensors and running parameters
 		diagnostics.checkIsEngineRunning()
@@ -127,20 +127,20 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 
 // GetDataSetSample retrieves a slice of the dataset for the last n points
 func (diagnostics *MemsDiagnostics) GetDataSetSample(points int) []MemsData {
-	maxItems := len(diagnostics.Dataset)
+	maxItems := len(diagnostics.dataset)
 
 	if points > maxItems {
 		points = maxItems
 	}
 
-	return diagnostics.Dataset[maxItems-points:]
+	return diagnostics.dataset[maxItems-points:]
 }
 
 // GetMetricStatistics takes the sample and calculates the simple average
 // this is useful to detect the trend for a metric
 func (diagnostics *MemsDiagnostics) GetMetricStatistics(metricName string) Stats {
 	// get the fields available in the sample
-	sampleValues := reflect.ValueOf(diagnostics.Sample)
+	sampleValues := reflect.ValueOf(diagnostics.sample)
 	// an array to hold the sample
 	metricSample := []float64{}
 
@@ -175,7 +175,7 @@ func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
 // if the last reading of engine RPM is 0 then the engine is not running
 // we don't use the sample set as the engine may have recently been stopped
 func (diagnostics *MemsDiagnostics) checkIsEngineRunning() {
-	diagnostics.Analysis.IsEngineRunning = !(diagnostics.CurrentData.EngineRPM == 0)
+	diagnostics.Analysis.IsEngineRunning = !(diagnostics.currentData.EngineRPM == 0)
 }
 
 // IsIdle determines the correct idle speed parameters based on whether the engine is warm or cold
@@ -226,7 +226,7 @@ func (diagnostics *MemsDiagnostics) checkMapSensor() {
 // Fast idle is typically 2500 - 3000 RPM
 // Slow idle is typically  450 - 1500 RPM
 func (diagnostics *MemsDiagnostics) checkForExpectedClosedLoop() {
-	diagnostics.Analysis.IsClosedLoop = diagnostics.CurrentData.ClosedLoop
+	diagnostics.Analysis.IsClosedLoop = diagnostics.currentData.ClosedLoop
 	// expecting ECU to switch to closed loop when at operating temperature and either idling or cruising
 	diagnostics.Analysis.ClosedLoopExpected = diagnostics.Analysis.IsAtOperatingTemp && (diagnostics.Analysis.IsEngineIdle || diagnostics.Analysis.IsCruising)
 }
@@ -248,7 +248,7 @@ func (diagnostics *MemsDiagnostics) checkForVacuumFault() {
 func (diagnostics *MemsDiagnostics) checkIdleAirControl() {
 	if diagnostics.Analysis.IsEngineRunning {
 		// IAC fault if the idle offset exceeds the max error, yet the IAC Position remains at 0
-		if diagnostics.CurrentData.IdleSpeedDeviation >= maxIdleError && diagnostics.CurrentData.IACPosition == 0 {
+		if diagnostics.currentData.IdleSpeedDeviation >= maxIdleError && diagnostics.currentData.IACPosition == 0 {
 			diagnostics.Analysis.IdleAirControlFault = true
 			diagnostics.Analysis.AnalysisCode = codeStepperMotor
 		}
