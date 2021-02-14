@@ -3,9 +3,11 @@
 package tests
 
 import (
+	"fmt"
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
+	"github.com/mitchellh/go-homedir"
 	"testing"
 )
 
@@ -27,7 +29,9 @@ func TestConnectAndInitialiseScenario(t *testing.T) {
 }
 
 func connectAndInitialise(t *testing.T, port string) {
-	logfolder := "logs"
+	homeFolder, _ := homedir.Dir()
+	logfolder := fmt.Sprintf("%s/memsfcr/logs", homeFolder)
+
 	mems := rosco.NewMemsConnection(logfolder)
 	mems.ConnectAndInitialiseECU(port)
 

@@ -72,6 +72,8 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 		port = fmt.Sprintf("%s/%s", mems.logfolder, port)
 		port = filepath.FromSlash(port)
 
+		log.Infof("loading scenario file %s", port)
+
 		mems.responder = NewResponder()
 	}
 
@@ -502,6 +504,11 @@ func (mems *MemsConnection) connect(port string) {
 // check if the port is a CSV file, if so then a scenario emulation
 // has been requested rather than a real serial connection
 func (mems *MemsConnection) isScenario(port string) bool {
+	// return true if the URL starts file://
+	if strings.HasPrefix(port, "file://") {
+		return true
+	}
+	// return true if the file extension is CSV
 	return strings.HasSuffix(port, ".csv")
 }
 
