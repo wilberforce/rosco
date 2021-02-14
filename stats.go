@@ -1,7 +1,6 @@
 package rosco
 
 import (
-	"fmt"
 	"github.com/montanaflynn/stats"
 	log "github.com/sirupsen/logrus"
 	"gonum.org/v1/gonum/stat"
@@ -48,7 +47,7 @@ func NewStats(name string, data []float64) *Stats {
 	s.Mode, _ = stats.Round(s.Mode, 2)
 	s.TrendSlope, s.Trend = linearRegression(data)
 
-	log.WithFields(log.Fields{"stats": fmt.Sprintf("%+v", *s)}).Info("diagnostic stats calculated")
+	log.Infof("stats %+v", *s)
 	return s
 }
 
