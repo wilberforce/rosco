@@ -39,7 +39,7 @@ func NewStats(name string, data []float64) *Stats {
 	s.TrendSlope, s.Trend = linearRegression(data)
 	s.Mean, _ = stats.Mean(data)
 	s.Stddev, _ = stats.StandardDeviation(data)
-	s.Oscillation, _ = stats.AutoCorrelation(data, 10)
+	s.Oscillation, _ = stats.AutoCorrelation(data, 20)
 
 	s.Min = convertNaNandRound(s.Min)
 	s.Max = convertNaNandRound(s.Max)
