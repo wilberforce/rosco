@@ -56,12 +56,11 @@ func NewStats(name string, data []float64) *Stats {
 }
 
 func convertNaNandRound(metric float64) float64 {
-	if metric == math.NaN() {
-		return 0.0
+	if math.IsNaN(metric) {
+		return float64(0.00)
 	}
 
-	metric, _ = stats.Round(metric, 2)
-	return metric
+	return math.Round(metric*100) / 100
 }
 
 func findMinAndMax(data []float64) (min float64, max float64) {

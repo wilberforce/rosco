@@ -67,6 +67,18 @@ func getDataframe(t *testing.T, port string) {
 	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
 }
 
+func TestStats(t *testing.T) {
+	port := getPort(false)
+	mems := rosco.NewMemsConnection(port)
+	mems.ConnectAndInitialiseECU(port)
+
+	mems.GetDataframes()
+
+	mems.Diagnostics.Analyse()
+	stats := mems.Diagnostics
+	then.AssertThat(t, stats.Stats["Oscillation"], is.GreaterThan(0.0))
+}
+
 func TestAdjustSTFT(t *testing.T) {
 	port := getPort(false)
 
