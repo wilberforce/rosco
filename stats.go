@@ -38,18 +38,17 @@ func NewStats(name string, data []float64) *Stats {
 	s.Min, s.Max = findMinAndMax(data)
 	s.Mode, s.ModeCount = stat.Mode(data, nil)
 
-	s.Mean, _ = stats.Mean(data)
+	s.Mean, err = stats.Mean(data)
 	if err != nil {
 		s.Mean = 0.0
 	}
 
-	s.Stddev, _ = stats.StandardDeviation(data)
+	s.Stddev, err = stats.StandardDeviation(data)
 	if err != nil {
 		s.Stddev = 0.0
 	}
 
 	s.Oscillation, err = stats.AutoCorrelation(data, 10)
-
 	if err != nil {
 		s.Oscillation = 0.0
 	}
