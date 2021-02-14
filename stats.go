@@ -51,7 +51,7 @@ func NewStats(name string, data []float64) *Stats {
 	s.TrendSlope = convertNaNandRound(s.TrendSlope)
 	s.Oscillation = convertNaNandRound(s.Oscillation)
 
-	log.Infof("stats %+v", *s)
+	log.Debugf("stats %+v", *s)
 	return s
 }
 
