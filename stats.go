@@ -4,6 +4,7 @@ import (
 	"github.com/montanaflynn/stats"
 	log "github.com/sirupsen/logrus"
 	"gonum.org/v1/gonum/stat"
+	"math"
 )
 
 // Stats structure
@@ -24,8 +25,6 @@ type Stats struct {
 
 // NewStats generates stats from a sample of float64 values
 func NewStats(name string, data []float64) *Stats {
-	var err error
-
 	// the sample stats
 	s := &Stats{
 		Name:  name,
@@ -37,30 +36,32 @@ func NewStats(name string, data []float64) *Stats {
 	// get the sample stats
 	s.Min, s.Max = findMinAndMax(data)
 	s.Mode, s.ModeCount = stat.Mode(data, nil)
-
-	s.Mean, err = stats.Mean(data)
-	if err != nil {
-		s.Mean = 0.0
-	}
-
-	s.Stddev, err = stats.StandardDeviation(data)
-	if err != nil {
-		s.Stddev = 0.0
-	}
-
-	s.Oscillation, err = stats.AutoCorrelation(data, 10)
-	if err != nil {
-		s.Oscillation = 0.0
-	}
-
-	s.Mean, _ = stats.Round(s.Mean, 2)
-	s.Stddev, _ = stats.Round(s.Stddev, 2)
-	s.Mode, _ = stats.Round(s.Mode, 2)
-	s.Oscillation, _ = stats.Round(s.Oscillation, 2)
 	s.TrendSlope, s.Trend = linearRegression(data)
+	s.Mean, _ = stats.Mean(data)
+	s.Stddev, _ = stats.StandardDeviation(data)
+	s.Oscillation, _ = stats.AutoCorrelation(data, 10)
+
+	s.Min = convertNaNandRound(s.Min)
+	s.Max = convertNaNandRound(s.Max)
+	s.Mean = convertNaNandRound(s.Mean)
+	s.Stddev = convertNaNandRound(s.Stddev)
+	s.Mode = convertNaNandRound(s.Mode)
+	s.ModeCount = convertNaNandRound(s.ModeCount)
+	s.Trend = convertNaNandRound(s.Trend)
+	s.TrendSlope = convertNaNandRound(s.TrendSlope)
+	s.Oscillation = convertNaNandRound(s.Oscillation)
 
 	log.Infof("stats %+v", *s)
 	return s
+}
+
+func convertNaNandRound(metric float64) float64 {
+	if metric == math.NaN() {
+		return 0.0
+	}
+
+	metric, _ = stats.Round(metric, 2)
+	return metric
 }
 
 func findMinAndMax(data []float64) (min float64, max float64) {
