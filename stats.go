@@ -24,6 +24,8 @@ type Stats struct {
 
 // NewStats generates stats from a sample of float64 values
 func NewStats(name string, data []float64) *Stats {
+	var err error
+
 	// the sample stats
 	s := &Stats{
 		Name:  name,
@@ -34,17 +36,28 @@ func NewStats(name string, data []float64) *Stats {
 
 	// get the sample stats
 	s.Min, s.Max = findMinAndMax(data)
-	s.Mean, s.Stddev = stat.MeanStdDev(data, nil)
 	s.Mode, s.ModeCount = stat.Mode(data, nil)
 
-	// round to 2 decimal places
 	s.Mean, _ = stats.Mean(data)
+	if err != nil {
+		s.Mean = 0.0
+	}
+
 	s.Stddev, _ = stats.StandardDeviation(data)
-	s.Oscillation, _ = stats.AutoCorrelation(data, 10)
+	if err != nil {
+		s.Stddev = 0.0
+	}
+
+	s.Oscillation, err = stats.AutoCorrelation(data, 10)
+
+	if err != nil {
+		s.Oscillation = 0.0
+	}
 
 	s.Mean, _ = stats.Round(s.Mean, 2)
 	s.Stddev, _ = stats.Round(s.Stddev, 2)
 	s.Mode, _ = stats.Round(s.Mode, 2)
+	s.Oscillation, _ = stats.Round(s.Oscillation, 2)
 	s.TrendSlope, s.Trend = linearRegression(data)
 
 	log.Infof("stats %+v", *s)
