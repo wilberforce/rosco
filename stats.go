@@ -1,10 +1,11 @@
 package rosco
 
 import (
+	"math"
+
 	"github.com/montanaflynn/stats"
 	log "github.com/sirupsen/logrus"
 	"gonum.org/v1/gonum/stat"
-	"math"
 )
 
 // Stats structure
@@ -32,6 +33,7 @@ func NewStats(name string, data []float64) *Stats {
 	}
 
 	s.Count = len(data)
+	swing := 300.0
 
 	// get the sample stats
 	s.Min, s.Max = findMinAndMax(data)
@@ -39,7 +41,7 @@ func NewStats(name string, data []float64) *Stats {
 	s.TrendSlope, s.Trend = linearRegression(data)
 	s.Mean, _ = stats.Mean(data)
 	s.Stddev, _ = stats.StandardDeviation(data)
-	s.Oscillation, _ = stats.AutoCorrelation(data, 20)
+	s.Oscillation = countOscillations(data, swing)
 
 	s.Min = convertNaNandRound(s.Min)
 	s.Max = convertNaNandRound(s.Max)
@@ -75,6 +77,27 @@ func findMinAndMax(data []float64) (min float64, max float64) {
 		}
 	}
 	return min, max
+}
+
+func countOscillations(data []float64, swing float64) float64 {
+	count := len(data)
+	oscillations := 0.0
+
+	if count > 1 {
+		// get the first value in the array
+		prev := data[0]
+
+		// start at the second value
+		for i := 1; i < count; i++ {
+			// if the current value has moved +/- the swing value
+			// count that as an oscillation
+			if data[i] < (prev-swing) || data[i] > (prev+swing) {
+				oscillations++
+			}
+		}
+	}
+
+	return oscillations
 }
 
 func linearRegression(data []float64) (float64, float64) {

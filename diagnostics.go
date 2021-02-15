@@ -89,7 +89,7 @@ func (diagnostics *MemsDiagnostics) Add(data MemsData) {
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
-	if len(diagnostics.dataset) > 0 {
+	if len(diagnostics.dataset) > 1 {
 		// work with a sample of the last n seconds of data
 		diagnostics.sample = diagnostics.GetDataSetSample(maxSamples)
 
