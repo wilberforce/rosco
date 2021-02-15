@@ -25,7 +25,7 @@ const (
 	maxSamples          = 30   // ~30 seconds
 	minIAC              = 30   // Minimum normal operation steps for the IAC / Stepper Motor
 	maxIAC              = 160  // Maximum normal operation steps for the IAC / Stepper Motor
-	timeToWarm          = 600  // allow 5 minutes to warm up to operating temperature
+	warmingFactor       = 11   // allow 11 seconds per degree to warm up to operating temperature
 )
 
 const (
@@ -188,7 +188,9 @@ func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
 	elapsedTime := currentTime.Sub(startTime)
 
 	// evaluate running tempurature if sufficient time has passed
-	if elapsedTime.Seconds() > timeToWarm {
+	degreesToWarm := engineOperatingTemp - diagnostics.dataset[0].CoolantTemp
+
+	if elapsedTime.Seconds() > float64(degreesToWarm*warmingFactor) {
 		if !diagnostics.Analysis.IsAtOperatingTemp {
 			// set fault code if engine should be warm
 			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeCoolant)
