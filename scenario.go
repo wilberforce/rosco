@@ -3,14 +3,15 @@ package rosco
 import (
 	"bytes"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 )
 
 // getScenarioPath returns the path to the scenario files
@@ -34,7 +35,6 @@ func getScenarioPath(file string) string {
 func GetScenarios() ([]ScenarioDescription, error) {
 	logFolder := getScenarioPath("")
 
-	var files []string
 	var scenarios []ScenarioDescription
 
 	fileInfo, err := ioutil.ReadDir(logFolder)
@@ -48,7 +48,6 @@ func GetScenarios() ([]ScenarioDescription, error) {
 				scenario.Count = lineCounter(fmt.Sprintf("%s/%s", logFolder, scenario.Name))
 				scenario.Status = "Ready"
 				scenarios = append(scenarios, scenario)
-				files = append(files, file.Name())
 			}
 		}
 

@@ -25,6 +25,7 @@ const (
 	maxSamples          = 30   // ~30 seconds
 	minIAC              = 30   // Minimum normal operation steps for the IAC / Stepper Motor
 	maxIAC              = 160  // Maximum normal operation steps for the IAC / Stepper Motor
+	timeToWarm          = 600  // allow 5 minutes to warm up to operating temperature
 )
 
 const (
@@ -94,6 +95,8 @@ func (diagnostics *MemsDiagnostics) Add(data MemsData) {
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
+	diagnostics.Analysis.AnalysisCode = []string{}
+
 	if len(diagnostics.dataset) > 1 {
 		// work with a sample of the last n seconds of data
 		diagnostics.sample = diagnostics.GetDataSetSample(maxSamples)
@@ -105,9 +108,6 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.Stats["LambdaVoltage"] = diagnostics.GetMetricStatistics("LambdaVoltage")
 		diagnostics.Stats["AirFuelRatio"] = diagnostics.GetMetricStatistics("AirFuelRatio")
 		diagnostics.Stats["IACPosition"] = diagnostics.GetMetricStatistics("IACPosition")
-
-		// default analysis outcome
-		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeOptimal)
 
 		// apply ECU detected faults
 		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.currentData.CoolantTempSensorFault
@@ -123,11 +123,17 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.checkForExpectedClosedLoop()
 		diagnostics.checkIdleAirControl()
 		diagnostics.checkLambdaStatus()
+		diagnostics.checkForVacuumFault()
 
 		log.Infof("diagnostics %+v", diagnostics.Analysis)
 		log.Infof("stats %+v", diagnostics.Stats)
 	} else {
 		log.Warnf("No sample data to perform diagnostics")
+	}
+
+	if len(diagnostics.Analysis.AnalysisCode) < 1 {
+		// default analysis outcome
+		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeOptimal)
 	}
 }
 
@@ -179,10 +185,10 @@ func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
 
 	startTime, _ := time.Parse("15:04:05.000", diagnostics.dataset[0].Time)
 	currentTime, _ := time.Parse("15:04:05.000", diagnostics.currentData.Time)
-	elapsedTime := startTime.Sub(currentTime)
-	log.Infof("%v - %v = %v", startTime, currentTime, elapsedTime)
-	// evaluate running tempurate if 5 minutes have passed
-	if elapsedTime.Seconds() > 600 {
+	elapsedTime := currentTime.Sub(startTime)
+
+	// evaluate running tempurature if sufficient time has passed
+	if elapsedTime.Seconds() > timeToWarm {
 		if !diagnostics.Analysis.IsAtOperatingTemp {
 			// set fault code if engine should be warm
 			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeCoolant)
