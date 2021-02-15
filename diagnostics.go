@@ -120,6 +120,7 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.checkLambdaStatus()
 
 		log.Infof("diagnostics %+v", diagnostics.Analysis)
+		log.Infof("stats %+v", diagnostics.Stats)
 	} else {
 		log.Warnf("No sample data to perform diagnostics")
 	}

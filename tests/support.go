@@ -47,7 +47,7 @@ func init() {
 
 func getPort(useScenario bool) string {
 	if useScenario {
-		return "warmrun.csv"
+		return "scenario.csv"
 	}
 
 	if runtime.GOOS == "darwin" {
