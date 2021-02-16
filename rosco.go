@@ -410,7 +410,7 @@ func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCo
 	log.WithFields(log.Fields{"command": cmd, "steps": steps, "data": fmt.Sprintf("%x", data)}).Info("adjustment modified")
 
 	if data != nil {
-		if len(data) > 1 {
+		if len(data) > 1 && len(cmd) > 0 {
 			if cmd[0] == data[0] {
 				return int(data[1])
 			}
@@ -570,8 +570,8 @@ func (mems *MemsConnection) initialise() {
 				mems.Status.Initialised = true
 			} else {
 				log.Error("timed out on intialisation sequence, closing connection")
-				mems.SerialPort.Flush()
-				mems.SerialPort.Close()
+				_ = mems.SerialPort.Flush()
+				_ = mems.SerialPort.Close()
 				mems.Status.Connected = false
 				mems.Status.Initialised = false
 			}
@@ -790,3 +790,39 @@ func init() {
 	// generic response, expect command and single byte response
 	responseMap["00"] = []byte{0x00, 0x00}
 }
+
+/**
+ * Repeatedly send command to open or close the idle air control valve until
+ * it is in the desired Position. The valve does not necessarily move one full
+ * step per serial command, depending on the rate at which the commands are
+ * issued.
+ */
+/*
+ bool mems_move_iac(mems_info *info, uint8_t desired_pos)
+ {
+   bool status = false;
+   uint16_t attempts = 0;
+   uint8_t current_pos = 0;
+   actuator_cmd cmd;
+
+   // read the current IAC Position, and only take action
+   // if we're not already at the desired point
+   if (mems_read_iac_position(info, &current_pos))
+   {
+	 if ((desired_pos < current_pos) ||
+		 ((desired_pos > current_pos) && (current_pos < IAC_MAXIMUM)))
+	 {
+	   cmd = (desired_pos > current_pos) ? MEMS_OpenIAC : MEMS_CloseIAC;
+
+	   do
+	   {
+		 status = mems_test_actuator(info, cmd, &current_pos);
+		 attempts += 1;
+	   } while (status && (current_pos != desired_pos) && (attempts < 300));
+	 }
+   }
+
+   status = (desired_pos == current_pos);
+
+   return status;
+ }*/

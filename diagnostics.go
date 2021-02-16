@@ -8,23 +8,24 @@ import (
 )
 
 const (
-	minIdleColdRPM      = 900  // Minimum expected RPM when running at Idle when cold
-	maxIdleColdRPM      = 1200 // Maximum expected RPM when running at Idle when cold
-	minIdleWarmRPM      = 700  // Minimum expected RPM when running at Idle when warm
-	maxIdleWarmRPM      = 900  // Maximum expected RPM when running at Idle when warm
-	minIdleMap          = 30   // Minimum MAP reading when the engine is running
-	maxIdleMap          = 60   // Maximum MAP reading when the engine is running
-	minMAPEngineOff     = 95   // Minimum MAP reading when the engine to not running
-	engineOperatingTemp = 80   // Engine is at operating temp when coolant temp > 80C
-	bestAFR             = 14.7 // Ideal Air to Fuel ratio
-	lambdaLow           = 10   // Lambda minimum operating voltage
-	lambdaHigh          = 900  // Lambda maximum operating voltage
-	maxIdleError        = 50   // Max Idle Error
-	maxSamples          = 30   // ~30 seconds
-	maxDataset          = 30   // Max items to store in the running dataset
-	minIAC              = 30   // Minimum normal operation steps for the IAC / Stepper Motor
-	maxIAC              = 160  // Maximum normal operation steps for the IAC / Stepper Motor
-	warmingFactor       = 11   // allow 11 seconds per degree to warm up to operating temperature
+	minIdleColdRPM        = 900  // Minimum expected RPM when running at Idle when cold
+	maxIdleColdRPM        = 1200 // Maximum expected RPM when running at Idle when cold
+	minIdleWarmRPM        = 700  // Minimum expected RPM when running at Idle when warm
+	maxIdleWarmRPM        = 900  // Maximum expected RPM when running at Idle when warm
+	minIdleMap            = 30   // Minimum MAP reading when the engine is running
+	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
+	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
+	engineOperatingTemp   = 80   // Engine is at operating temp when coolant temp > 80C
+	bestAFR               = 14.7 // Ideal Air to Fuel ratio
+	lambdaLow             = 10   // Lambda minimum operating voltage
+	lambdaHigh            = 900  // Lambda maximum operating voltage
+	minLambdaOscillations = 2    // Minimum number of oscillations in the lambda voltage
+	maxIdleError          = 50   // Max Idle Error
+	maxDataset            = 30   // Max items to store in the running dataset
+	minReadings           = 20   // Minimum number of readings before evaluation of data changes
+	minIAC                = 30   // Minimum normal operation steps for the IAC / Stepper Motor
+	maxIAC                = 160  // Maximum normal operation steps for the IAC / Stepper Motor
+	warmingFactor         = 11   // allow 11 seconds per degree to warm up to operating temperature
 )
 
 // MemsAnalysisReport is the output from running the analysis
@@ -141,7 +142,7 @@ func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats
 	// get the fields available in the sample
 	sampleValues := reflect.ValueOf(diagnostics.dataset)
 	// an array to hold the sample
-	metricSample := make([]float64, maxSamples)
+	metricSample := make([]float64, maxDataset)
 
 	// iterate the fields and create an array of values for the specific metric only
 	for i := 0; i < sampleValues.Len(); i++ {
@@ -203,7 +204,7 @@ func (diagnostics *MemsDiagnostics) checkIsEngineIdle() {
 		diagnostics.Analysis.IsCruising = diagnostics.Stats["EngineRPM"].Mean > maxIdleWarmRPM
 	}
 
-	if diagnostics.Stats["EngineRPM"].Count >= 30 && diagnostics.Analysis.IsEngineRunning {
+	if len(diagnostics.dataset) >= minReadings && diagnostics.Analysis.IsEngineRunning {
 		if diagnostics.Analysis.IsAtOperatingTemp {
 			// use warm idle settings
 			diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleWarmRPM)
@@ -296,47 +297,11 @@ func (diagnostics *MemsDiagnostics) checkLambdaStatus() {
 	}
 
 	// The lambda voltage should oscillate, if the lambda is static for too long, lambda sensor maybe faulty
-	// sample must be a minimum of 20 before evaluation
-	if diagnostics.Stats["LambdaVoltage"].Count >= 20 {
-		if diagnostics.Stats["LambdaVoltage"].Oscillation < 2 {
+	// sample must be a minimum of readings before evaluation
+	if len(diagnostics.dataset) >= minReadings {
+		if diagnostics.Stats["LambdaVoltage"].Oscillation < minLambdaOscillations {
 			diagnostics.Analysis.LambdaSensorFault = true
 			diagnostics.Analysis.LambdaOscillationFault = true
 		}
 	}
 }
-
-/**
- * Repeatedly send command to open or close the idle air control valve until
- * it is in the desired Position. The valve does not necessarily move one full
- * step per serial command, depending on the rate at which the commands are
- * issued.
- */
-/*
- bool mems_move_iac(mems_info *info, uint8_t desired_pos)
- {
-   bool status = false;
-   uint16_t attempts = 0;
-   uint8_t current_pos = 0;
-   actuator_cmd cmd;
-
-   // read the current IAC Position, and only take action
-   // if we're not already at the desired point
-   if (mems_read_iac_position(info, &current_pos))
-   {
-	 if ((desired_pos < current_pos) ||
-		 ((desired_pos > current_pos) && (current_pos < IAC_MAXIMUM)))
-	 {
-	   cmd = (desired_pos > current_pos) ? MEMS_OpenIAC : MEMS_CloseIAC;
-
-	   do
-	   {
-		 status = mems_test_actuator(info, cmd, &current_pos);
-		 attempts += 1;
-	   } while (status && (current_pos != desired_pos) && (attempts < 300));
-	 }
-   }
-
-   status = (desired_pos == current_pos);
-
-   return status;
- }*/
