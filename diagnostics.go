@@ -19,32 +19,16 @@ const (
 	bestAFR             = 14.7 // Ideal Air to Fuel ratio
 	lambdaLow           = 10   // Lambda minimum operating voltage
 	lambdaHigh          = 900  // Lambda maximum operating voltage
-	lambdaStaticHigh    = 450  // Lambda mid-point high water mark
-	lambdaStaticLow     = 410  // Lambda mid-point low water mark
 	maxIdleError        = 50   // Max Idle Error
 	maxSamples          = 30   // ~30 seconds
+	maxDataset          = 30   // Max items to store in the running dataset
 	minIAC              = 30   // Minimum normal operation steps for the IAC / Stepper Motor
 	maxIAC              = 160  // Maximum normal operation steps for the IAC / Stepper Motor
 	warmingFactor       = 11   // allow 11 seconds per degree to warm up to operating temperature
 )
 
-const (
-	codeOptimal           = "optimal"
-	codeVacuumPipe        = "vacuum"
-	codeThermostat        = "thermostat"
-	codeCoolant           = "coolant"
-	codeStepperMotor      = "stepper"
-	codeLambdaRange       = "lambdarange"
-	codeLambdaOscillation = "lambdaoscillation"
-	codeStepperMax        = "steppermax"
-	codeStepperMin        = "steppermin"
-	codeMap               = "map"
-	codeClosedLoop        = "closedloop"
-)
-
 // MemsAnalysisReport is the output from running the analysis
 type MemsAnalysisReport struct {
-	AnalysisCode             []string
 	IsEngineRunning          bool
 	IsEngineWarming          bool
 	IsAtOperatingTemp        bool
@@ -52,11 +36,16 @@ type MemsAnalysisReport struct {
 	IsEngineIdleFault        bool
 	IsCruising               bool
 	IsClosedLoop             bool
-	ClosedLoopExpected       bool
+	ClosedLoopFault          bool
 	MapFault                 bool
 	VacuumFault              bool
 	IdleAirControlFault      bool
-	LambdaFault              bool
+	IACMinFault              bool
+	IACMaxFault              bool
+	LambdaSensorFault        bool
+	LambdaRangeFault         bool
+	LambdaOscillationFault   bool
+	ThermostatFault          bool
 	CoolantTempSensorFault   bool
 	IntakeAirTempSensorFault bool
 	FuelPumpCircuitFault     bool
@@ -66,12 +55,12 @@ type MemsAnalysisReport struct {
 
 // MemsDiagnostics structure
 type MemsDiagnostics struct {
-	// currentData is the lastest reading
+	// initialData is the first reading
+	initialData MemsData
+	// currentData is the latest reading
 	currentData MemsData
-	// Full DataSet of mems data
+	// dataset contains the last n readings
 	dataset []MemsData
-	// sample contains the last n readings
-	sample []MemsData
 	// Stats of the sample
 	Stats map[string]Stats
 	// Analysis report
@@ -89,25 +78,22 @@ func NewMemsDiagnostics() *MemsDiagnostics {
 
 // Add data to the data set for diagnosis
 func (diagnostics *MemsDiagnostics) Add(data MemsData) {
-	diagnostics.currentData = data
-	diagnostics.dataset = append(diagnostics.dataset, data)
+	// add the data to the dataset
+	diagnostics.addToDataset(data)
+	// update the IAC position
+	diagnostics.Analysis.IACPosition = data.IACPosition
 }
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
-	diagnostics.Analysis.AnalysisCode = []string{}
-
 	if len(diagnostics.dataset) > 1 {
-		// work with a sample of the last n seconds of data
-		diagnostics.sample = diagnostics.GetDataSetSample(maxSamples)
-
 		// get samples and associated stats for named metrics
-		diagnostics.Stats["CoolantTemp"] = diagnostics.GetMetricStatistics("CoolantTemp")
-		diagnostics.Stats["EngineRPM"] = diagnostics.GetMetricStatistics("EngineRPM")
-		diagnostics.Stats["ManifoldAbsolutePressure"] = diagnostics.GetMetricStatistics("ManifoldAbsolutePressure")
-		diagnostics.Stats["LambdaVoltage"] = diagnostics.GetMetricStatistics("LambdaVoltage")
-		diagnostics.Stats["AirFuelRatio"] = diagnostics.GetMetricStatistics("AirFuelRatio")
-		diagnostics.Stats["IACPosition"] = diagnostics.GetMetricStatistics("IACPosition")
+		diagnostics.Stats["CoolantTemp"] = diagnostics.getMetricStatistics("CoolantTemp")
+		diagnostics.Stats["EngineRPM"] = diagnostics.getMetricStatistics("EngineRPM")
+		diagnostics.Stats["ManifoldAbsolutePressure"] = diagnostics.getMetricStatistics("ManifoldAbsolutePressure")
+		diagnostics.Stats["LambdaVoltage"] = diagnostics.getMetricStatistics("LambdaVoltage")
+		diagnostics.Stats["AirFuelRatio"] = diagnostics.getMetricStatistics("AirFuelRatio")
+		diagnostics.Stats["IACPosition"] = diagnostics.getMetricStatistics("IACPosition")
 
 		// apply ECU detected faults
 		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.currentData.CoolantTempSensorFault
@@ -130,31 +116,32 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 	} else {
 		log.Warnf("No sample data to perform diagnostics")
 	}
+}
 
-	if len(diagnostics.Analysis.AnalysisCode) < 1 {
-		// default analysis outcome
-		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeOptimal)
+// add the data to the dataset, truncate the data if it exceeds the max values
+// we want to store
+func (diagnostics *MemsDiagnostics) addToDataset(data MemsData) {
+	diagnostics.dataset = append(diagnostics.dataset, data)
+	diagnostics.currentData = data
+
+	if len(diagnostics.dataset) == 1 {
+		// save the first entry in the dataset
+		diagnostics.initialData = data
+	}
+
+	// shift the data in the buffer
+	if len(diagnostics.dataset) > maxDataset {
+		diagnostics.dataset = diagnostics.dataset[1:]
 	}
 }
 
-// GetDataSetSample retrieves a slice of the dataset for the last n points
-func (diagnostics *MemsDiagnostics) GetDataSetSample(points int) []MemsData {
-	maxItems := len(diagnostics.dataset)
-
-	if points > maxItems {
-		points = maxItems
-	}
-
-	return diagnostics.dataset[maxItems-points:]
-}
-
-// GetMetricStatistics takes the sample and calculates the simple average
+// getMetricStatistics takes the sample and calculates the simple average
 // this is useful to detect the trend for a metric
-func (diagnostics *MemsDiagnostics) GetMetricStatistics(metricName string) Stats {
+func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats {
 	// get the fields available in the sample
-	sampleValues := reflect.ValueOf(diagnostics.sample)
+	sampleValues := reflect.ValueOf(diagnostics.dataset)
 	// an array to hold the sample
-	metricSample := []float64{}
+	metricSample := make([]float64, maxSamples)
 
 	// iterate the fields and create an array of values for the specific metric only
 	for i := 0; i < sampleValues.Len(); i++ {
@@ -181,20 +168,21 @@ func (diagnostics *MemsDiagnostics) GetMetricStatistics(metricName string) Stats
 // stability of the temperature. If the reading is at the designated thermostat temp (88C) and the std deviation
 // is low then deem the engine to be running at operating temperature
 func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
-	diagnostics.Analysis.IsAtOperatingTemp = (diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp && diagnostics.Stats["CoolantTemp"].Stddev < 5)
+	diagnostics.Analysis.IsAtOperatingTemp = diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp && diagnostics.Stats["CoolantTemp"].Stddev < 5
 
-	startTime, _ := time.Parse("15:04:05.000", diagnostics.dataset[0].Time)
-	currentTime, _ := time.Parse("15:04:05.000", diagnostics.currentData.Time)
-	elapsedTime := currentTime.Sub(startTime)
+	if !diagnostics.Analysis.IsAtOperatingTemp {
+		startTime, _ := time.Parse("15:04:05.000", diagnostics.initialData.Time)
+		currentTime, _ := time.Parse("15:04:05.000", diagnostics.currentData.Time)
+		elapsedTime := currentTime.Sub(startTime)
 
-	// evaluate running tempurature if sufficient time has passed
-	degreesToWarm := engineOperatingTemp - diagnostics.dataset[0].CoolantTemp
+		// evaluate running temperature if sufficient time has passed
+		degreesToWarm := engineOperatingTemp - diagnostics.initialData.CoolantTemp
 
-	if elapsedTime.Seconds() > float64(degreesToWarm*warmingFactor) {
-		if !diagnostics.Analysis.IsAtOperatingTemp {
-			// set fault code if engine should be warm
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeCoolant)
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeThermostat)
+		if elapsedTime.Seconds() > float64(degreesToWarm*warmingFactor) {
+			if !diagnostics.Analysis.IsAtOperatingTemp {
+				// set fault code if engine should be warm
+				diagnostics.Analysis.ThermostatFault = true
+			}
 		}
 	}
 }
@@ -244,10 +232,6 @@ func (diagnostics *MemsDiagnostics) checkMapSensor() {
 		// fault if the map is reading low when the engine is off
 		diagnostics.Analysis.MapFault = diagnostics.Stats["ManifoldAbsolutePressure"].Mean < minMAPEngineOff
 	}
-
-	if diagnostics.Analysis.MapFault {
-		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeMap)
-	}
 }
 
 // determines whether we're expecting the ECU to use closed loop.
@@ -259,10 +243,7 @@ func (diagnostics *MemsDiagnostics) checkMapSensor() {
 func (diagnostics *MemsDiagnostics) checkForExpectedClosedLoop() {
 	diagnostics.Analysis.IsClosedLoop = diagnostics.currentData.ClosedLoop
 	// expecting ECU to switch to closed loop when at operating temperature and either idling or cruising
-	diagnostics.Analysis.ClosedLoopExpected = diagnostics.Analysis.IsAtOperatingTemp && (diagnostics.Analysis.IsEngineIdle || diagnostics.Analysis.IsCruising)
-	if diagnostics.Analysis.ClosedLoopExpected {
-		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeClosedLoop)
-	}
+	diagnostics.Analysis.ClosedLoopFault = diagnostics.Analysis.IsAtOperatingTemp && (diagnostics.Analysis.IsEngineIdle || diagnostics.Analysis.IsCruising)
 }
 
 // if a hose is split the vacuum sensor in the ECU doesn't see true manifold pressure,
@@ -270,10 +251,7 @@ func (diagnostics *MemsDiagnostics) checkForExpectedClosedLoop() {
 // The ECU thinks then that the engine is more highly loaded, for the same RPM, than it really is and gives more fuel
 func (diagnostics *MemsDiagnostics) checkForVacuumFault() {
 	// wonder if this will be true if the AFR is rich and the MAP reading is high
-	diagnostics.Analysis.VacuumFault = (diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= maxIdleMap && diagnostics.Stats["AirFuelRatio"].Mean > bestAFR)
-	if diagnostics.Analysis.VacuumFault {
-		diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeVacuumPipe)
-	}
+	diagnostics.Analysis.VacuumFault = diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= maxIdleMap && diagnostics.Stats["AirFuelRatio"].Mean > bestAFR
 }
 
 // Also known as stepping motor--idle air control valve (IACV)
@@ -287,18 +265,17 @@ func (diagnostics *MemsDiagnostics) checkIdleAirControl() {
 		// IAC fault if the idle offset exceeds the max error, yet the IAC Position remains at 0
 		if diagnostics.currentData.IdleSpeedDeviation >= maxIdleError && diagnostics.currentData.IACPosition == 0 {
 			diagnostics.Analysis.IdleAirControlFault = true
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeStepperMotor)
 		}
 
 		// IAC fault if the stepper motor is wide open or closed
 		if diagnostics.Stats["IACPosition"].Mean <= minIAC {
 			diagnostics.Analysis.IdleAirControlFault = true
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeStepperMin)
+			diagnostics.Analysis.IACMinFault = true
 		}
 
 		if diagnostics.Stats["IACPosition"].Mean >= maxIAC {
 			diagnostics.Analysis.IdleAirControlFault = true
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeStepperMax)
+			diagnostics.Analysis.IACMaxFault = true
 		}
 	} else {
 		diagnostics.Analysis.IdleAirControlFault = false
@@ -307,22 +284,23 @@ func (diagnostics *MemsDiagnostics) checkIdleAirControl() {
 
 //  At 2000 rpm it should be switching rapidly between the minimum and maximum figures as the MEMS controls the engine conditions.????
 func (diagnostics *MemsDiagnostics) checkLambdaStatus() {
+	// lambda sensor fault is set to 1, indicates an O2 system fault
+	if diagnostics.currentData.LambdaStatus > 0 {
+		diagnostics.Analysis.LambdaSensorFault = true
+	}
 	if diagnostics.Analysis.IsEngineRunning && diagnostics.Analysis.IsClosedLoop {
-		if diagnostics.Stats["LambdaVoltage"].Min >= lambdaLow && diagnostics.Stats["LambdaVoltage"].Max <= lambdaHigh {
-			// lambda operating within exepcted parameters
-			diagnostics.Analysis.LambdaFault = false
-		} else {
-			diagnostics.Analysis.LambdaFault = true
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeLambdaRange)
+		// lambda voltages too high or too low
+		if diagnostics.Stats["LambdaVoltage"].Min <= lambdaLow && diagnostics.Stats["LambdaVoltage"].Max >= lambdaHigh {
+			diagnostics.Analysis.LambdaRangeFault = true
 		}
 	}
 
 	// The lambda voltage should oscillate, if the lambda is static for too long, lambda sensor maybe faulty
-	// sample must be a minimum of 30 before evaluation
-	if diagnostics.Stats["LambdaVoltage"].Count >= 30 {
+	// sample must be a minimum of 20 before evaluation
+	if diagnostics.Stats["LambdaVoltage"].Count >= 20 {
 		if diagnostics.Stats["LambdaVoltage"].Oscillation < 2 {
-			diagnostics.Analysis.LambdaFault = true
-			diagnostics.Analysis.AnalysisCode = append(diagnostics.Analysis.AnalysisCode, codeLambdaOscillation)
+			diagnostics.Analysis.LambdaSensorFault = true
+			diagnostics.Analysis.LambdaOscillationFault = true
 		}
 	}
 }

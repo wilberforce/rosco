@@ -29,7 +29,7 @@ func TestGetDataframe(t *testing.T) {
 		data := mems.GetDataframes()
 
 		then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
-		then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
+		then.AssertThat(t, data.IdleSpeedOffset, is.GreaterThanOrEqualTo(10))
 		then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
 		then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
 		then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
@@ -37,6 +37,8 @@ func TestGetDataframe(t *testing.T) {
 }
 
 func TestStats(t *testing.T) {
+	var data rosco.MemsData
+
 	port := getPort(false)
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
@@ -44,13 +46,16 @@ func TestStats(t *testing.T) {
 	then.AssertThat(t, mems.Status.Initialised, is.True())
 
 	if mems.Status.Initialised {
-		data := mems.GetDataframes()
+		// get 30 data points
+		for i := 0; i < 30; i++ {
+			data = mems.GetDataframes()
 
-		then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
-		then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
-		then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
-		then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
-		then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+			then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+			then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
+			then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
+			then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
+			then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+		}
 
 		mems.Diagnostics.Analyse()
 		stats := mems.Diagnostics
