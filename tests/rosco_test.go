@@ -1,4 +1,4 @@
-// +build standard
+// +build emulated
 
 package tests
 
@@ -9,77 +9,53 @@ import (
 	"testing"
 )
 
-func TestGetScenarios(t *testing.T) {
-	scenarios, err := rosco.GetScenarios()
-
-	then.AssertThat(t, err, is.Nil())
-	then.AssertThat(t, len(scenarios), is.GreaterThan(0))
-}
-
-func TestConnectAndInitialise(t *testing.T) {
+func TestConnectInitialiseAndDisconnect(t *testing.T) {
 	port := getPort(false)
-	connectAndInitialise(t, port)
-}
-
-func TestConnectAndInitialiseScenario(t *testing.T) {
-	port := getPort(true)
-	connectAndInitialise(t, port)
-}
-
-func connectAndInitialise(t *testing.T, port string) {
-	//homeFolder, _ := homedir.Dir()
-	//logfolder := fmt.Sprintf("%s/memsfcr/logs", homeFolder)
-
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Connected, is.True())
 	then.AssertThat(t, mems.Status.Initialised, is.True())
-
-	mems.Disconnect()
-	then.AssertThat(t, mems.Status.Connected, is.False())
-	then.AssertThat(t, mems.Status.Initialised, is.False())
-}
-
-func TestStatusWithoutConnection(t *testing.T) {
-	mems := rosco.NewMemsConnection(".")
-	then.AssertThat(t, mems.Status.Connected, is.False())
-}
-
-func TestScenarioGetDataframe(t *testing.T) {
-	port := getPort(true)
-	getDataframe(t, port)
 }
 
 func TestGetDataframe(t *testing.T) {
 	port := getPort(false)
-	getDataframe(t, port)
-}
-
-func getDataframe(t *testing.T, port string) {
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
 
-	data := mems.GetDataframes()
+	then.AssertThat(t, mems.Status.Initialised, is.True())
 
-	then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
-	then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
-	then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
-	then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
-	then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+	if mems.Status.Initialised {
+		data := mems.GetDataframes()
+
+		then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+		then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
+		then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
+		then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
+		then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+	}
 }
 
 func TestStats(t *testing.T) {
 	port := getPort(false)
-	mems := rosco.NewMemsConnection(port)
+	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
 
-	mems.GetDataframes()
-	mems.GetDataframes()
+	then.AssertThat(t, mems.Status.Initialised, is.True())
 
-	mems.Diagnostics.Analyse()
-	stats := mems.Diagnostics
-	then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
+	if mems.Status.Initialised {
+		data := mems.GetDataframes()
+
+		then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+		then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
+		then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
+		then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
+		then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
+
+		mems.Diagnostics.Analyse()
+		stats := mems.Diagnostics
+		then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
+	}
 }
 
 func TestAdjustSTFT(t *testing.T) {
