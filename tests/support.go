@@ -45,11 +45,7 @@ func init() {
 	//log.SetReportCaller(true)
 }
 
-func getPort(useScenario bool) string {
-	if useScenario {
-		return "scenario.csv"
-	}
-
+func getVirtualPort() string {
 	if runtime.GOOS == "darwin" {
 		// ensure memsulator is running for tests to pass
 		homeFolder, _ := homedir.Dir()

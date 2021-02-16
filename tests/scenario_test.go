@@ -17,7 +17,7 @@ func TestGetScenarios(t *testing.T) {
 }
 
 func TestConnectInitialiseScenario(t *testing.T) {
-	port := getPort(true)
+	port := "nofaults.csv"
 
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
@@ -26,7 +26,24 @@ func TestConnectInitialiseScenario(t *testing.T) {
 	then.AssertThat(t, mems.Status.Initialised, is.True())
 }
 
-func TestScenarioGetDataframe(t *testing.T) {
-	port := getPort(true)
-	getDataframe(t, port)
+func TestStatsScenario(t *testing.T) {
+	port := "nofaults.csv"
+	mems := rosco.NewMemsConnection(".")
+	mems.ConnectAndInitialiseECU(port)
+
+	then.AssertThat(t, mems.Status.Initialised, is.True())
+
+	if mems.Status.Initialised {
+		// get 30 data points
+		for i := 0; i < 30; i++ {
+			_ = mems.GetDataframes()
+
+			then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
+			then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
+		}
+
+		mems.Diagnostics.Analyse()
+		stats := mems.Diagnostics
+		then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
+	}
 }
