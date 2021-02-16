@@ -45,6 +45,7 @@ func NewStats(name string, data []float64) *Stats {
 		s.Oscillation = countOscillations(data, lambdaOscillationSwing)
 	}
 
+	s.Value = convertNaNandRound(s.Value)
 	s.Min = convertNaNandRound(s.Min)
 	s.Max = convertNaNandRound(s.Max)
 	s.Mean = convertNaNandRound(s.Mean)
