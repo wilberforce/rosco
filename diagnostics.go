@@ -95,6 +95,7 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.Stats["LambdaVoltage"] = diagnostics.getMetricStatistics("LambdaVoltage")
 		diagnostics.Stats["AirFuelRatio"] = diagnostics.getMetricStatistics("AirFuelRatio")
 		diagnostics.Stats["IACPosition"] = diagnostics.getMetricStatistics("IACPosition")
+		diagnostics.Stats["ThrottleAngle"] = diagnostics.getMetricStatistics("ThrottleAngle")
 
 		// apply ECU detected faults
 		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.currentData.CoolantTempSensorFault
@@ -204,15 +205,19 @@ func (diagnostics *MemsDiagnostics) checkIsEngineIdle() {
 		diagnostics.Analysis.IsCruising = diagnostics.Stats["EngineRPM"].Mean > maxIdleWarmRPM
 	}
 
+	// if the engine is running, and the throttle angle is low then assume we're at idle
+	// check the revs are within the tolerances for warm and cold idle speeds
 	if len(diagnostics.dataset) >= minReadings && diagnostics.Analysis.IsEngineRunning {
-		if diagnostics.Analysis.IsAtOperatingTemp {
-			// use warm idle settings
-			diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleWarmRPM)
-			diagnostics.Analysis.IsEngineWarming = false
-		} else {
-			// use cold idle settings
-			diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleColdRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleColdRPM)
-			diagnostics.Analysis.IsEngineWarming = true
+		if diagnostics.Stats["ThrottleAngle"].Mean < 5 {
+			if diagnostics.Analysis.IsAtOperatingTemp {
+				// use warm idle settings
+				diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleWarmRPM)
+				diagnostics.Analysis.IsEngineWarming = false
+			} else {
+				// use cold idle settings
+				diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleColdRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleColdRPM)
+				diagnostics.Analysis.IsEngineWarming = true
+			}
 		}
 	}
 }
