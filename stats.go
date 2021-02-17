@@ -3,7 +3,6 @@ package rosco
 import (
 	"math"
 
-	"github.com/montanaflynn/stats"
 	log "github.com/sirupsen/logrus"
 	"gonum.org/v1/gonum/stat"
 )
@@ -37,8 +36,7 @@ func NewStats(name string, data []float64) *Stats {
 	// get the sample stats
 	s.Min, s.Max = findMinAndMax(data)
 	s.TrendSlope, s.Trend = linearRegression(data)
-	s.Mean, _ = stats.Mean(data)
-	s.Stddev, _ = stats.StandardDeviation(data)
+	s.Mean, s.Stddev = stat.MeanStdDev(data, nil)
 
 	// get the oscillation of the lambda voltage
 	if name == lambdaVoltageMetric {

@@ -142,7 +142,7 @@ func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats
 	// get the fields available in the sample
 	sampleValues := reflect.ValueOf(diagnostics.dataset)
 	// an array to hold the sample
-	metricSample := make([]float64, maxDataset)
+	metricSample := []float64{}
 
 	// iterate the fields and create an array of values for the specific metric only
 	for i := 0; i < sampleValues.Len(); i++ {

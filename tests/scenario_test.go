@@ -17,7 +17,7 @@ func TestGetScenarios(t *testing.T) {
 }
 
 func TestConnectInitialiseScenario(t *testing.T) {
-	port := "nofaults.csv"
+	port := "nofaults-warm.csv"
 
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
@@ -27,7 +27,7 @@ func TestConnectInitialiseScenario(t *testing.T) {
 }
 
 func TestStatsScenario(t *testing.T) {
-	port := "nofaults.csv"
+	port := "nofaults-warm.csv"
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
 
@@ -44,6 +44,11 @@ func TestStatsScenario(t *testing.T) {
 
 		mems.Diagnostics.Analyse()
 		stats := mems.Diagnostics
+
+		then.AssertThat(t, stats.Analysis.IsEngineRunning, is.True())
+		then.AssertThat(t, stats.Analysis.IsEngineWarming, is.False())
+		then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.True())
+
 		then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
 	}
 }
