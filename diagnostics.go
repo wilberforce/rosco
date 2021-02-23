@@ -1,10 +1,9 @@
 package rosco
 
 import (
+	log "github.com/sirupsen/logrus"
 	"reflect"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -25,11 +24,13 @@ const (
 	minReadings           = 20   // Minimum number of readings before evaluation of data changes
 	minIAC                = 30   // Minimum normal operation steps for the IAC / Stepper Motor
 	maxIAC                = 160  // Maximum normal operation steps for the IAC / Stepper Motor
+	maxJackCount          = 200  // IAC increment attempts
 	warmingFactor         = 11   // allow 11 seconds per degree to warm up to operating temperature
 )
 
 // MemsAnalysisReport is the output from running the analysis
 type MemsAnalysisReport struct {
+	Time                     string
 	IsEngineRunning          bool
 	IsEngineWarming          bool
 	IsAtOperatingTemp        bool
@@ -37,13 +38,17 @@ type MemsAnalysisReport struct {
 	IsEngineIdleFault        bool
 	IsCruising               bool
 	IsClosedLoop             bool
+	IsThrottleActive         bool
+	IsClosedLoopExpected     bool
+	IdleSpeedFault           bool
 	ClosedLoopFault          bool
 	MapFault                 bool
 	VacuumFault              bool
 	IdleAirControlFault      bool
 	IACMinFault              bool
 	IACMaxFault              bool
-	LambdaSensorFault        bool
+	IACHighJackValue         bool
+	O2SystemFault            bool
 	LambdaRangeFault         bool
 	LambdaOscillationFault   bool
 	ThermostatFault          bool
@@ -87,6 +92,8 @@ func (diagnostics *MemsDiagnostics) Add(data MemsData) {
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
+	diagnostics.Analysis.Time = diagnostics.currentData.Time
+
 	if len(diagnostics.dataset) > 1 {
 		// get samples and associated stats for named metrics
 		diagnostics.Stats["CoolantTemp"] = diagnostics.getMetricStatistics("CoolantTemp")
@@ -104,14 +111,30 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.Analysis.IntakeAirTempSensorFault = diagnostics.currentData.IntakeAirTempSensorFault
 
 		// check the status of the sensors and running parameters
-		diagnostics.checkIsEngineRunning()
-		diagnostics.checkIsEngineWarm()
-		diagnostics.checkIsEngineIdle()
-		diagnostics.checkMapSensor()
-		diagnostics.checkForExpectedClosedLoop()
-		diagnostics.checkIdleAirControl()
-		diagnostics.checkLambdaStatus()
-		diagnostics.checkForVacuumFault()
+		diagnostics.Analysis.IsEngineRunning = diagnostics.isEngineRunning()
+
+		if diagnostics.Analysis.IsEngineRunning {
+			diagnostics.Analysis.IsEngineWarming = diagnostics.isEngineWarming()
+			diagnostics.Analysis.IsAtOperatingTemp = diagnostics.isAtOperatingTemperature()
+			diagnostics.Analysis.IsEngineIdle = diagnostics.isEngineIdle()
+			diagnostics.Analysis.IsCruising = diagnostics.isEngineCruising()
+			diagnostics.Analysis.IsThrottleActive = diagnostics.isThrottleActive()
+			diagnostics.Analysis.IsClosedLoop = diagnostics.isClosedLoop()
+
+			// perform fault analysis
+			diagnostics.Analysis.MapFault = !diagnostics.isMapValid()
+			diagnostics.Analysis.O2SystemFault = !diagnostics.isO2SystemWorking()
+			diagnostics.Analysis.ThermostatFault = !diagnostics.isThermostatWorking()
+			diagnostics.Analysis.IsClosedLoopExpected = diagnostics.isClosedLoopExpected()
+			diagnostics.Analysis.LambdaRangeFault = !diagnostics.isLambdaRangeValid()
+			diagnostics.Analysis.LambdaOscillationFault = !diagnostics.isLambdaOscillating()
+			diagnostics.Analysis.VacuumFault = diagnostics.isVacuumPipeFaulty()
+			diagnostics.Analysis.IdleAirControlFault = diagnostics.isIACPositionValid()
+			diagnostics.Analysis.IACMinFault = diagnostics.isIACPositionMin()
+			diagnostics.Analysis.IACMaxFault = diagnostics.isIACPositionMax()
+			diagnostics.Analysis.IACHighJackValue = diagnostics.isIACJackCountHigh()
+			diagnostics.Analysis.IdleSpeedFault = !diagnostics.isEngineIdleSpeedValid()
+		}
 
 		log.Infof("diagnostics %+v", diagnostics.Analysis)
 		log.Infof("stats %+v", diagnostics.Stats)
@@ -166,13 +189,67 @@ func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats
 	return stats
 }
 
-// IsEngineWarm uses the current engine temperature and the standard deviation in the sample to determine the
-// stability of the temperature. If the reading is at the designated thermostat temp (88C) and the std deviation
-// is low then deem the engine to be running at operating temperature
-func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
-	diagnostics.Analysis.IsAtOperatingTemp = diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp && diagnostics.Stats["CoolantTemp"].Stddev < 5
+// Given the current engine rpm
+// When the rpm is > 0
+// Then the engine is running
+func (diagnostics *MemsDiagnostics) isEngineRunning() bool {
+	return diagnostics.currentData.EngineRPM > 0
+}
 
-	if !diagnostics.Analysis.IsAtOperatingTemp {
+// Given the engine is running
+// When the throttle is not depressed
+// Then the throttle is not active
+func (diagnostics *MemsDiagnostics) isThrottleActive() bool {
+	return diagnostics.Stats["ThrottleAngle"].Mean < 5
+}
+
+// Given the engine is running
+// And the sample rpm is stable
+// Then the engine is idling
+func (diagnostics *MemsDiagnostics) isEngineIdle() bool {
+	return diagnostics.isEngineRunning() && !diagnostics.isThrottleActive()
+}
+
+func (diagnostics *MemsDiagnostics) isEngineIdleSpeedValid() bool {
+	if diagnostics.isEngineIdle() {
+		if diagnostics.isAtOperatingTemperature() {
+			return diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleWarmRPM
+		} else {
+			return diagnostics.Stats["EngineRPM"].Mean >= minIdleColdRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleColdRPM
+		}
+	}
+
+	return true
+}
+
+// Given the engine is running
+// And the throttle is depressed
+// When the sample rpm is above idle
+// Then the engine is cruising
+func (diagnostics *MemsDiagnostics) isEngineCruising() bool {
+	return diagnostics.isThrottleActive() && diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM
+}
+
+// Given the engine coolant temperature is stable
+// When the temperature is above the operating temperature
+// Then the engine is at operating temperature
+func (diagnostics *MemsDiagnostics) isAtOperatingTemperature() bool {
+	return diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp && diagnostics.Stats["CoolantTemp"].Stddev < 5
+}
+
+// Given the engine coolant temperature is increasing at > 5%
+// When the engine coolant temperature is below the operating temperature
+// Then the engine is warming
+func (diagnostics *MemsDiagnostics) isEngineWarming() bool {
+	if diagnostics.isAtOperatingTemperature() == false {
+		return diagnostics.Stats["CoolantTemp"].Trend > 0.05
+	}
+
+	return false
+}
+
+func (diagnostics *MemsDiagnostics) isThermostatWorking() bool {
+	if !diagnostics.isAtOperatingTemperature() {
 		startTime, _ := time.Parse("15:04:05.000", diagnostics.initialData.Time)
 		currentTime, _ := time.Parse("15:04:05.000", diagnostics.currentData.Time)
 		elapsedTime := currentTime.Sub(startTime)
@@ -181,132 +258,102 @@ func (diagnostics *MemsDiagnostics) checkIsEngineWarm() {
 		degreesToWarm := engineOperatingTemp - diagnostics.initialData.CoolantTemp
 
 		if elapsedTime.Seconds() > float64(degreesToWarm*warmingFactor) {
-			if !diagnostics.Analysis.IsAtOperatingTemp {
-				// set fault code if engine should be warm
-				diagnostics.Analysis.ThermostatFault = true
-			}
+			return diagnostics.currentData.CoolantTemp >= engineOperatingTemp
 		}
 	}
+
+	return true
 }
 
-// if the last reading of engine RPM is 0 then the engine is not running
-// we don't use the sample set as the engine may have recently been stopped
-func (diagnostics *MemsDiagnostics) checkIsEngineRunning() {
-	diagnostics.Analysis.IsEngineRunning = !(diagnostics.currentData.EngineRPM == 0)
-}
-
-// IsIdle determines the correct idle speed parameters based on whether the engine is warm or cold
-// if the RPM is within the parameters for the sample period then the engine is deemed to be at Idle
-func (diagnostics *MemsDiagnostics) checkIsEngineIdle() {
-	// if the engine is running and the RPM is stable, then deem to be in an idle state
-	// if the engine RPM is above idle but stable then we're cruising
-	if diagnostics.Analysis.IsEngineRunning && diagnostics.Stats["EngineRPM"].Stddev <= 10 {
-		diagnostics.Analysis.IsEngineIdle = true
-		diagnostics.Analysis.IsCruising = diagnostics.Stats["EngineRPM"].Mean > maxIdleWarmRPM
-	}
-
-	// if the engine is running, and the throttle angle is low then assume we're at idle
-	// check the revs are within the tolerances for warm and cold idle speeds
-	if len(diagnostics.dataset) >= minReadings && diagnostics.Analysis.IsEngineRunning {
-		if diagnostics.Stats["ThrottleAngle"].Mean < 5 {
-			if diagnostics.Analysis.IsAtOperatingTemp {
-				// use warm idle settings
-				diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleWarmRPM)
-				diagnostics.Analysis.IsEngineWarming = false
-			} else {
-				// use cold idle settings
-				diagnostics.Analysis.IsEngineIdleFault = !(diagnostics.Stats["EngineRPM"].Mean >= minIdleColdRPM && diagnostics.Stats["EngineRPM"].Mean <= maxIdleColdRPM)
-				diagnostics.Analysis.IsEngineWarming = true
-			}
-		}
-	}
-}
-
-// Manifold Pressure (KPa): This displays the pressure measured by the external MEMS air pressure sensor.
-// Normal reading with the engine not running is approximately 100 KPa
-// 30-40 KPa when the engine is idling.
-// Very high values may indicate problems with the sensor or a blocked or disconnected vacuum pipe.
-// Moderately raised values may indicate mechanical problems with the engine
-func (diagnostics *MemsDiagnostics) checkMapSensor() {
-	if diagnostics.Analysis.IsEngineRunning {
-		// only check if engine is running at idle
-		if diagnostics.Analysis.IsEngineIdle {
-			// fault if the map readings are outside of expected when idling
-			diagnostics.Analysis.MapFault = !(diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= minIdleMap && diagnostics.Stats["ManifoldAbsolutePressure"].Mean <= maxIdleMap)
-		}
+// Given the map sensor value
+// When the sample value is between expected values
+// Then the map sensor values are valid
+func (diagnostics *MemsDiagnostics) isMapValid() bool {
+	// Manifold Pressure (KPa): This displays the pressure measured by the external MEMS air pressure sensor.
+	// Normal reading with the engine not running is approximately 100 KPa
+	// 30-40 KPa when the engine is idling.
+	// Very high values may indicate problems with the sensor or a blocked or disconnected vacuum pipe.
+	// Moderately raised values may indicate mechanical problems with the engine
+	if diagnostics.isEngineRunning() {
+		// fault if the map readings are outside of expected when idling
+		return diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= minIdleMap && diagnostics.Stats["ManifoldAbsolutePressure"].Mean <= maxIdleMap
 	} else {
 		// fault if the map is reading low when the engine is off
-		diagnostics.Analysis.MapFault = diagnostics.Stats["ManifoldAbsolutePressure"].Mean < minMAPEngineOff
+		return diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= minMAPEngineOff
 	}
 }
 
-// determines whether we're expecting the ECU to use closed loop.
-// ECU will generally only use the lambda sensor’s output during two specific conditions
-// (a) during idle, ie. when the engine is under no load apart from keeping itself running, and
-// (b) during part-load conditions (which we usually term ‘cruising speed’) where the engine is keeping the car at a constant speed.
-// Fast idle is typically 2500 - 3000 RPM
-// Slow idle is typically  450 - 1500 RPM
-func (diagnostics *MemsDiagnostics) checkForExpectedClosedLoop() {
-	diagnostics.Analysis.IsClosedLoop = diagnostics.currentData.ClosedLoop
-	// expecting ECU to switch to closed loop when at operating temperature and either idling or cruising
-	diagnostics.Analysis.ClosedLoopFault = diagnostics.Analysis.IsAtOperatingTemp && (diagnostics.Analysis.IsEngineIdle || diagnostics.Analysis.IsCruising)
-}
-
-// if a hose is split the vacuum sensor in the ECU doesn't see true manifold pressure,
-// but something of a slightly higher absolute pressure (a little closer to atmospheric).
-// The ECU thinks then that the engine is more highly loaded, for the same RPM, than it really is and gives more fuel
-func (diagnostics *MemsDiagnostics) checkForVacuumFault() {
-	// wonder if this will be true if the AFR is rich and the MAP reading is high
-	diagnostics.Analysis.VacuumFault = diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= maxIdleMap && diagnostics.Stats["AirFuelRatio"].Mean > bestAFR
-}
-
-// Also known as stepping motor--idle air control valve (IACV)
-// bolts on the side of the injection body housing to control engine idle speed
-// and air flow from cold start up
-// A high number of steps indicates that the ECU is attempting to close the stepper or reduce the airflow
-// a low number would indicate the inability to increase airflow
-
-func (diagnostics *MemsDiagnostics) checkIdleAirControl() {
-	if diagnostics.Analysis.IsEngineRunning {
-		// IAC fault if the idle offset exceeds the max error, yet the IAC Position remains at 0
-		if diagnostics.currentData.IdleSpeedDeviation >= maxIdleError && diagnostics.currentData.IACPosition == 0 {
-			diagnostics.Analysis.IdleAirControlFault = true
-		}
-
-		// IAC fault if the stepper motor is wide open or closed
-		if diagnostics.Stats["IACPosition"].Mean <= minIAC {
-			diagnostics.Analysis.IdleAirControlFault = true
-			diagnostics.Analysis.IACMinFault = true
-		}
-
-		if diagnostics.Stats["IACPosition"].Mean >= maxIAC {
-			diagnostics.Analysis.IdleAirControlFault = true
-			diagnostics.Analysis.IACMaxFault = true
-		}
-	} else {
-		diagnostics.Analysis.IdleAirControlFault = false
-	}
-}
-
-//  At 2000 rpm it should be switching rapidly between the minimum and maximum figures as the MEMS controls the engine conditions.????
-func (diagnostics *MemsDiagnostics) checkLambdaStatus() {
-	// lambda sensor fault is set to 1, indicates an O2 system fault
-	if diagnostics.currentData.LambdaStatus > 0 {
-		diagnostics.Analysis.LambdaSensorFault = true
-	}
-	if diagnostics.Analysis.IsEngineRunning && diagnostics.Analysis.IsClosedLoop {
-		// lambda voltages too high or too low
-		if diagnostics.Stats["LambdaVoltage"].Min <= lambdaLow && diagnostics.Stats["LambdaVoltage"].Max >= lambdaHigh {
-			diagnostics.Analysis.LambdaRangeFault = true
-		}
-	}
-
-	// The lambda voltage should oscillate, if the lambda is static for too long, lambda sensor maybe faulty
-	// sample must be a minimum of readings before evaluation
+func (diagnostics *MemsDiagnostics) isLambdaOscillating() bool {
+	// At 2000 rpm lambda values should oscillate
 	if len(diagnostics.dataset) >= minReadings {
-		if diagnostics.Stats["LambdaVoltage"].Oscillation < minLambdaOscillations {
-			diagnostics.Analysis.LambdaSensorFault = true
-			diagnostics.Analysis.LambdaOscillationFault = true
-		}
+		return !(diagnostics.Stats["LambdaVoltage"].Oscillation < minLambdaOscillations)
 	}
+
+	return false
+}
+
+func (diagnostics *MemsDiagnostics) isO2SystemWorking() bool {
+	// 0 indicates an O2 system fault
+	return diagnostics.currentData.LambdaStatus >= 1
+}
+
+func (diagnostics *MemsDiagnostics) isClosedLoop() bool {
+	return diagnostics.currentData.ClosedLoop
+}
+
+func (diagnostics *MemsDiagnostics) isClosedLoopExpected() bool {
+	// determines whether we're expecting the ECU to use closed loop.
+	// ECU will generally only use the lambda sensor’s output during two specific conditions
+	// (a) during idle, ie. when the engine is under no load apart from keeping itself running, and
+	// (b) during part-load conditions (which we usually term ‘cruising speed’) where the engine is keeping the car at a constant speed.
+	// Fast idle is typically 2500 - 3000 RPM
+	// Slow idle is typically  450 - 1500 RPM
+	// summary : expecting ECU to switch to closed loop when at operating temperature and either idling or cruising
+	return diagnostics.isAtOperatingTemperature() && (diagnostics.isEngineIdle() || diagnostics.isEngineCruising())
+}
+
+func (diagnostics *MemsDiagnostics) isLambdaRangeValid() bool {
+	// lambda voltages too high or too low
+	if len(diagnostics.dataset) >= minReadings {
+		return diagnostics.Stats["LambdaVoltage"].Min >= lambdaLow && diagnostics.Stats["LambdaVoltage"].Max <= lambdaHigh
+	}
+
+	return true
+}
+
+// IAC position invalid if the idle offset exceeds the max error, yet the IAC Position remains at 0
+func (diagnostics *MemsDiagnostics) isIACPositionValid() bool {
+	// Also known as stepper motor idle air control valve (IACV)
+	// bolts on the side of the injection body housing to control engine idle speed and air flow from cold start up
+	// A high number of steps indicates that the ECU is attempting to close the stepper or reduce the airflow
+	// a low number would indicate the inability to increase airflow
+	return diagnostics.currentData.IdleSpeedDeviation < maxIdleError && diagnostics.currentData.IACPosition > 0
+}
+
+func (diagnostics *MemsDiagnostics) isIACPositionMax() bool {
+	return diagnostics.Stats["IACPosition"].Mean >= maxIAC
+}
+
+func (diagnostics *MemsDiagnostics) isIACPositionMin() bool {
+	return diagnostics.Stats["IACPosition"].Mean <= minIAC
+}
+
+func (diagnostics *MemsDiagnostics) isVacuumPipeFaulty() bool {
+	// if a hose is split the vacuum sensor in the ECU doesn't see true manifold pressure,
+	// but something of a slightly higher absolute pressure (a little closer to atmospheric).
+	// The ECU thinks then that the engine is more highly loaded, for the same RPM, than it really is and gives more fuel
+
+	return diagnostics.Stats["ManifoldAbsolutePressure"].Mean >= maxIdleMap && diagnostics.Stats["AirFuelRatio"].Mean > bestAFR
+}
+
+func (diagnostics *MemsDiagnostics) isIACJackCountHigh() bool {
+	// On systems using a throttle body where the idle air is controlled by a stepper motor which directly acts on the
+	// throttle disk (normally metal inlet manifold), the count indicates the number of times the ECU has had to re-learn
+	// the relationship between the stepper position and the throttle position.
+	// If this count is high or increments each time the ignition is turned off,
+	//then there may be a problem with the stepper motor, throttle cable adjustment or the throttle pot.
+	// On systems using a plastic throttle body/manifold, the count is a warning that the MEMS ECU has never seen the
+	// throttle fully closed.
+	// The count is increased for each journey with no closed throttle, indicating a throttle adjustment problem.
+	return diagnostics.currentData.JackCount >= maxJackCount
 }

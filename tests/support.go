@@ -22,19 +22,27 @@ func getLogfilename() string {
 }
 
 func init() {
-	// write logs to file and console
-	filename := getLogfilename()
+	var logWriter io.Writer
 
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening log file: %v", err)
+	writeToFile := false
+
+	if writeToFile {
+		// write logs to file and console
+		filename := getLogfilename()
+
+		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalf("error opening log file: %v", err)
+		}
+
+		logWriter = io.MultiWriter(os.Stdout, f)
+	} else {
+		logWriter = os.Stdout
 	}
-
-	mw := io.MultiWriter(os.Stdout, f)
 
 	// Output to stdout instead of the default stderr
 	// and to a log file
-	log.SetOutput(mw)
+	log.SetOutput(logWriter)
 
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors: false,

@@ -26,8 +26,110 @@ func TestConnectInitialiseScenario(t *testing.T) {
 	then.AssertThat(t, mems.Status.Initialised, is.True())
 }
 
-func TestStatsScenario(t *testing.T) {
-	port := "nofaults-warm.csv"
+func TestStatsWarmingNoFaults(t *testing.T) {
+	stats := testStatsScenario(t, "nofaults-warming.csv")
+
+	then.AssertThat(t, stats.Analysis.IsEngineRunning, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineWarming, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineIdle, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineIdleFault, is.False())
+	then.AssertThat(t, stats.Analysis.IsCruising, is.False())
+	then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.False())
+	then.AssertThat(t, stats.Analysis.ClosedLoopFault, is.False())
+	then.AssertThat(t, stats.Analysis.MapFault, is.False())
+	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThermostatFault, is.False())
+	then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
+}
+
+func TestStatsAtOperatingTempNoFaults(t *testing.T) {
+	stats := testStatsScenario(t, "nofaults-warm.csv")
+
+	then.AssertThat(t, stats.Analysis.IsEngineRunning, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineWarming, is.False())
+	then.AssertThat(t, stats.Analysis.IsEngineIdle, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineIdleFault, is.False())
+	then.AssertThat(t, stats.Analysis.IsCruising, is.False())
+	then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.True())
+	then.AssertThat(t, stats.Analysis.ClosedLoopFault, is.False())
+	then.AssertThat(t, stats.Analysis.MapFault, is.False())
+	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThermostatFault, is.False())
+	then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
+}
+
+func TestStatsThermostatFault(t *testing.T) {
+	stats := testStatsScenario(t, "fault-thermostat.csv")
+
+	then.AssertThat(t, stats.Analysis.IsEngineRunning, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineWarming, is.False())
+	then.AssertThat(t, stats.Analysis.IsEngineIdle, is.True())
+	then.AssertThat(t, stats.Analysis.IsEngineIdleFault, is.False())
+	then.AssertThat(t, stats.Analysis.IsCruising, is.False())
+	then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.False())
+	then.AssertThat(t, stats.Analysis.ClosedLoopFault, is.False())
+	then.AssertThat(t, stats.Analysis.MapFault, is.False())
+	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThermostatFault, is.True())
+	then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
+}
+
+func TestStatsColdStartNoFaults(t *testing.T) {
+	stats := testStatsScenario(t, "nofaults-cold.csv")
+
+	then.AssertThat(t, stats.Analysis.IsEngineRunning, is.False())
+	then.AssertThat(t, stats.Analysis.IsEngineWarming, is.False())
+	then.AssertThat(t, stats.Analysis.IsEngineIdle, is.False())
+	then.AssertThat(t, stats.Analysis.IsEngineIdleFault, is.False())
+	then.AssertThat(t, stats.Analysis.IsCruising, is.False())
+	then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.False())
+	then.AssertThat(t, stats.Analysis.ClosedLoopFault, is.False())
+	then.AssertThat(t, stats.Analysis.MapFault, is.False())
+	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
+	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
+	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThermostatFault, is.False())
+	then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
+	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
+	then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
+	//then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
+}
+
+func testStatsScenario(t *testing.T, port string) *rosco.MemsDiagnostics {
+	var stats *rosco.MemsDiagnostics
+
 	mems := rosco.NewMemsConnection(".")
 	mems.ConnectAndInitialiseECU(port)
 
@@ -43,29 +145,8 @@ func TestStatsScenario(t *testing.T) {
 		}
 
 		mems.Diagnostics.Analyse()
-		stats := mems.Diagnostics
-
-		then.AssertThat(t, stats.Analysis.IsEngineRunning, is.True())
-		then.AssertThat(t, stats.Analysis.IsEngineWarming, is.False())
-		then.AssertThat(t, stats.Analysis.IsEngineIdle, is.False())
-		then.AssertThat(t, stats.Analysis.IsEngineIdleFault, is.False())
-		then.AssertThat(t, stats.Analysis.IsCruising, is.False())
-		then.AssertThat(t, stats.Analysis.IsAtOperatingTemp, is.True())
-		then.AssertThat(t, stats.Analysis.ClosedLoopFault, is.False())
-		then.AssertThat(t, stats.Analysis.MapFault, is.False())
-		then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
-		then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
-		then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
-		then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
-		then.AssertThat(t, stats.Analysis.LambdaSensorFault, is.False())
-		then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
-		then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
-		then.AssertThat(t, stats.Analysis.ThermostatFault, is.False())
-		then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
-		then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
-		then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
-		then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
-
-		then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
+		stats = mems.Diagnostics
 	}
+
+	return stats
 }
