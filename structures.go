@@ -69,6 +69,8 @@ type (
 		FuelPumpCircuitFault     bool
 		ThrottlePotCircuitFault  bool
 
+		Analytics MemsAnalysisReport
+
 		Dataframe80 string `json:"Dataframe80"`
 		Dataframe7d string `json:"Dataframe7d"`
 	}

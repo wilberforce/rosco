@@ -39,8 +39,7 @@ func TestStatsWarmingNoFaults(t *testing.T) {
 	then.AssertThat(t, stats.Analysis.MapFault, is.False())
 	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
 	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlRangeFault, is.False())
 	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
@@ -64,8 +63,7 @@ func TestStatsAtOperatingTempNoFaults(t *testing.T) {
 	then.AssertThat(t, stats.Analysis.MapFault, is.False())
 	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
 	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlRangeFault, is.False())
 	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
@@ -89,12 +87,11 @@ func TestStatsThermostatFault(t *testing.T) {
 	then.AssertThat(t, stats.Analysis.MapFault, is.False())
 	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
 	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlRangeFault, is.False())
 	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
-	then.AssertThat(t, stats.Analysis.ThermostatFault, is.True())
+	then.AssertThat(t, stats.Analysis.ThermostatFault, is.False())
 	then.AssertThat(t, stats.Analysis.CoolantTempSensorFault, is.False())
 	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
 	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
@@ -114,8 +111,7 @@ func TestStatsColdStartNoFaults(t *testing.T) {
 	then.AssertThat(t, stats.Analysis.MapFault, is.False())
 	then.AssertThat(t, stats.Analysis.VacuumFault, is.False())
 	then.AssertThat(t, stats.Analysis.IdleAirControlFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMinFault, is.False())
-	then.AssertThat(t, stats.Analysis.IACMaxFault, is.False())
+	then.AssertThat(t, stats.Analysis.IdleAirControlRangeFault, is.False())
 	then.AssertThat(t, stats.Analysis.O2SystemFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaOscillationFault, is.False())
 	then.AssertThat(t, stats.Analysis.LambdaRangeFault, is.False())
@@ -149,4 +145,18 @@ func testStatsScenario(t *testing.T, port string) *rosco.MemsDiagnostics {
 	}
 
 	return stats
+}
+
+func BenchmarkScenario(b *testing.B) {
+	//var stats *rosco.MemsDiagnostics
+	port := "nofaults-cold.csv"
+
+	mems := rosco.NewMemsConnection(".")
+	mems.ConnectAndInitialiseECU(port)
+
+	for i := 0; i < 30; i++ {
+		_ = mems.GetDataframes()
+	}
+
+	mems.Diagnostics.Analyse()
 }

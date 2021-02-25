@@ -240,9 +240,8 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	mems.CommandResponse.MemsDataFrame = memsdata
 
 	mems.Diagnostics.Add(memsdata)
-
-	// only diagnostic on explict call rather than each dataframe
-	// mems.Diagnostics.Analyse()
+	mems.Diagnostics.Analyse()
+	memsdata.Analytics = mems.Diagnostics.Analysis
 
 	log.Infof("generated mems data from dataframe (%+v)", memsdata)
 
