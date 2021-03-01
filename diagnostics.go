@@ -30,21 +30,20 @@ const (
 
 // MemsAnalysisReport is the output from running the analysis
 type MemsAnalysisReport struct {
-	Time                     string
 	IsEngineRunning          bool
 	IsEngineWarming          bool
 	IsAtOperatingTemp        bool
 	IsEngineIdle             bool
 	IsEngineIdleFault        bool
-	IsCruising               bool
-	IsClosedLoop             bool
-	IsThrottleActive         bool
-	IsClosedLoopExpected     bool
 	IdleSpeedFault           bool
 	IdleErrorFault           bool
 	IdleHotFault             bool
 	IdleBaseFault            bool
+	IsCruising               bool
+	IsClosedLoop             bool
+	IsClosedLoopExpected     bool
 	ClosedLoopFault          bool
+	IsThrottleActive         bool
 	MapFault                 bool
 	VacuumFault              bool
 	IdleAirControlFault      bool
@@ -62,6 +61,10 @@ type MemsAnalysisReport struct {
 	CoilFault                bool
 	IACPosition              int
 }
+
+const DiagnosticsCSVHeader = "engine_running,warming,at_operating_temp,engine_idle,idle_fault,idle_speed_fault,idle_error_fault,idle_hot_fault," +
+	"cruising,closed_loop,closed_loop_expected,closed_loop_fault,throttle_active,map_fault,vacuum_fault,iac_fault,iac_range_fault,iac_jack_fault,o2_system_fault," +
+	"lambda_range_fault,lambda_oscillation_fault,thermostat_fault,crankshaft_sensor_fault,coil_fault"
 
 // MemsDiagnostics structure
 type MemsDiagnostics struct {
@@ -96,8 +99,6 @@ func (diagnostics *MemsDiagnostics) Add(data MemsData) {
 
 // Analyse runs a diagnostic review of the dataset
 func (diagnostics *MemsDiagnostics) Analyse() {
-	diagnostics.Analysis.Time = diagnostics.currentData.Time
-
 	if len(diagnostics.dataset) > 1 {
 		// get samples and associated stats for named metrics
 		diagnostics.Stats["CoolantTemp"] = diagnostics.getMetricStatistics("CoolantTemp")
