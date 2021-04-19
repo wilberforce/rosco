@@ -238,7 +238,7 @@ func (diagnostics *MemsDiagnostics) isCrankshaftPositionWorking() bool {
 	count := 0
 
 	for _, v := range diagnostics.dataset {
-		if v.CrankshaftPositionSensor {
+		if v.CrankshaftPositionSensor > 0 {
 			count++
 		}
 	}
