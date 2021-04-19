@@ -28,7 +28,7 @@ type (
 		IgnitionAdvanceOffset80  int
 		IgnitionAdvance          float32
 		CoilTime                 float32
-		CrankshaftPositionSensor uint8
+		CrankshaftPositionSensor int
 		Uk801a                   int
 		Uk801b                   int
 		IgnitionSwitch           bool

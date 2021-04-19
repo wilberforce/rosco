@@ -205,7 +205,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 		IgnitionAdvanceOffset80:  int(df80.IgnitionAdvanceOffset80),
 		IgnitionAdvance:          (float32(df80.IgnitionAdvance) / 2) - 24,
 		CoilTime:                 roundTo2DecimalPoints(float32(df80.CoilTime) * 0.002),
-		CrankshaftPositionSensor: df80.CrankshaftPositionSensor,
+		CrankshaftPositionSensor: int(df80.CrankshaftPositionSensor),
 		CoolantTempSensorFault:   bool(df80.Dtc0&CoolantSensorFaultCode != 0),
 		IntakeAirTempSensorFault: bool(df80.Dtc0&AirSensorFaultCode != 0),
 		FuelPumpCircuitFault:     bool(df80.Dtc1&FuelPumpFaultCode != 0),
