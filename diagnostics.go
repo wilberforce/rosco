@@ -68,6 +68,9 @@ const DiagnosticsCSVHeader = "engine_running,warming,at_operating_temp,engine_id
 
 // MemsDiagnostics structure
 type MemsDiagnostics struct {
+	// validDataSet is set once we have a full set of readings in
+	// the sample dataset
+	validDataSet bool
 	// initialData is the first reading
 	initialData MemsData
 	// currentData is the latest reading
@@ -83,6 +86,7 @@ type MemsDiagnostics struct {
 // NewMemsDiagnostics generates diagnostic reports
 func NewMemsDiagnostics() *MemsDiagnostics {
 	diagnostics := &MemsDiagnostics{}
+	diagnostics.validDataSet = false
 	diagnostics.dataset = []MemsData{}
 	diagnostics.Analysis = MemsAnalysisReport{}
 	diagnostics.Stats = make(map[string]Stats)
@@ -129,23 +133,25 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 			diagnostics.Analysis.IsThrottleActive = diagnostics.isThrottleActive()
 			diagnostics.Analysis.IsClosedLoop = diagnostics.isClosedLoop()
 
-			// perform fault analysis
-			diagnostics.Analysis.MapFault = !diagnostics.isMapValid()
-			diagnostics.Analysis.O2SystemFault = !diagnostics.isO2SystemWorking()
-			diagnostics.Analysis.ThermostatFault = !diagnostics.isThermostatWorking()
-			diagnostics.Analysis.IsClosedLoopExpected = diagnostics.isClosedLoopExpected()
-			diagnostics.Analysis.LambdaRangeFault = !diagnostics.isLambdaRangeValid()
-			diagnostics.Analysis.LambdaOscillationFault = !diagnostics.isLambdaOscillating()
-			diagnostics.Analysis.VacuumFault = diagnostics.isVacuumPipeFaulty()
-			diagnostics.Analysis.IdleAirControlFault = diagnostics.isIACPositionValid()
-			diagnostics.Analysis.IdleAirControlRangeFault = !diagnostics.isIACPositionRangeValid()
-			diagnostics.Analysis.IdleAirControlJackFault = diagnostics.isIACJackCountHigh()
-			diagnostics.Analysis.IdleSpeedFault = !diagnostics.isEngineIdleSpeedValid()
-			diagnostics.Analysis.CrankshaftSensorFault = !diagnostics.isCrankshaftPositionWorking()
-			diagnostics.Analysis.CoilFault = !diagnostics.isCoilTimeValid()
-			diagnostics.Analysis.IdleErrorFault = !diagnostics.isEngineIdleErrorValid()
-			diagnostics.Analysis.IdleHotFault = !diagnostics.isEngineHotIdleValid()
-			diagnostics.Analysis.IdleBaseFault = !diagnostics.isIdleBaseValid()
+			// perform fault analysis once we have a sample dataset
+			if diagnostics.validDataSet {
+				diagnostics.Analysis.MapFault = !diagnostics.isMapValid()
+				diagnostics.Analysis.O2SystemFault = !diagnostics.isO2SystemWorking()
+				diagnostics.Analysis.ThermostatFault = !diagnostics.isThermostatWorking()
+				diagnostics.Analysis.IsClosedLoopExpected = diagnostics.isClosedLoopExpected()
+				diagnostics.Analysis.LambdaRangeFault = !diagnostics.isLambdaRangeValid()
+				diagnostics.Analysis.LambdaOscillationFault = !diagnostics.isLambdaOscillating()
+				diagnostics.Analysis.VacuumFault = diagnostics.isVacuumPipeFaulty()
+				diagnostics.Analysis.IdleAirControlFault = diagnostics.isIACPositionValid()
+				diagnostics.Analysis.IdleAirControlRangeFault = !diagnostics.isIACPositionRangeValid()
+				diagnostics.Analysis.IdleAirControlJackFault = diagnostics.isIACJackCountHigh()
+				diagnostics.Analysis.IdleSpeedFault = !diagnostics.isEngineIdleSpeedValid()
+				diagnostics.Analysis.CrankshaftSensorFault = !diagnostics.isCrankshaftPositionWorking()
+				diagnostics.Analysis.CoilFault = !diagnostics.isCoilTimeValid()
+				diagnostics.Analysis.IdleErrorFault = !diagnostics.isEngineIdleErrorValid()
+				diagnostics.Analysis.IdleHotFault = !diagnostics.isEngineHotIdleValid()
+				diagnostics.Analysis.IdleBaseFault = !diagnostics.isIdleBaseValid()
+			}
 		}
 
 		log.Infof("diagnostics %+v", diagnostics.Analysis)
@@ -168,6 +174,7 @@ func (diagnostics *MemsDiagnostics) addToDataset(data MemsData) {
 
 	// shift the data in the buffer
 	if len(diagnostics.dataset) > maxDataset {
+		diagnostics.validDataSet = true
 		diagnostics.dataset = diagnostics.dataset[1:]
 	}
 }
