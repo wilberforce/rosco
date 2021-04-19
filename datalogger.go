@@ -79,8 +79,8 @@ func convertMemsDataToCSVData(data MemsData) []string {
 	s := fmt.Sprintf("%s,"+
 		"%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,%t,%t,"+
 		"%t,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,"+
-		"%t,%d,%d,"+
-		"%d,%d,%d,%.2f,%d,%d,%d,%d,%d,%t,"+
+		"%d,%d,%d,"+
+		"%t,%d,%d,%.2f,%d,%d,%d,%d,%d,%t,"+
 		"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"+
 		"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"+
 		"%s,%s,"+
