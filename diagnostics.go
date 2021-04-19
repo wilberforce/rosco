@@ -201,25 +201,6 @@ func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats
 	return stats
 }
 
-// takes an average from the dataset to determine whether the
-// metric is broadly true or false. Helps to eliminate false readings where
-// the data has a blip
-func (diagnostics *MemsDiagnostics) getBooleanMetricTrend(metricName string) bool {
-	count := 0
-
-	for _, v := range diagnostics.dataset {
-		r := reflect.ValueOf(v)
-		f := reflect.Indirect(r).FieldByName("metricName").Bool()
-		if f {
-			count++
-		}
-	}
-
-	// return true if we have an average of 80%
-	trend := float32(count / len(diagnostics.dataset))
-	return trend > 0.8
-}
-
 // Given the current engine rpm
 // When the rpm is > 0
 // Then the engine is running
@@ -228,7 +209,17 @@ func (diagnostics *MemsDiagnostics) isEngineRunning() bool {
 }
 
 func (diagnostics *MemsDiagnostics) isCrankshaftPositionWorking() bool {
-	return diagnostics.getBooleanMetricTrend("CrankshaftPositionSensor")
+	count := 0
+
+	for _, v := range diagnostics.dataset {
+		if v.CrankshaftPositionSensor {
+			count++
+		}
+	}
+
+	// return true if we have an average of 80% of the values are true
+	trend := float32(count / len(diagnostics.dataset))
+	return trend > 0.8
 }
 
 // Given the engine is running
