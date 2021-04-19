@@ -120,6 +120,7 @@ func TestStatsColdStartNoFaults(t *testing.T) {
 	then.AssertThat(t, stats.Analysis.IntakeAirTempSensorFault, is.False())
 	then.AssertThat(t, stats.Analysis.FuelPumpCircuitFault, is.False())
 	then.AssertThat(t, stats.Analysis.ThrottlePotCircuitFault, is.False())
+	then.AssertThat(t, stats.Analysis.CrankshaftSensorFault, is.False())
 	//then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
 }
 
