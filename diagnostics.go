@@ -116,6 +116,7 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		diagnostics.Stats["CoilTime"] = diagnostics.getMetricStatistics("CoilTime")
 		diagnostics.Stats["IdleError"] = diagnostics.getMetricStatistics("IdleSpeedDeviation")
 		diagnostics.Stats["IdleHot"] = diagnostics.getMetricStatistics("IdleHot")
+		diagnostics.Stats["CrankshaftPositionSensor"] = diagnostics.getMetricStatistics("CrankshaftPositionSensor")
 
 		// apply ECU detected faults
 		diagnostics.Analysis.CoolantTempSensorFault = diagnostics.currentData.CoolantTempSensorFault
@@ -235,17 +236,7 @@ func (diagnostics *MemsDiagnostics) isEngineRunning() bool {
 }
 
 func (diagnostics *MemsDiagnostics) isCrankshaftPositionWorking() bool {
-	count := 0
-
-	for _, v := range diagnostics.dataset {
-		if v.CrankshaftPositionSensor > 0 {
-			count++
-		}
-	}
-
-	// return true if we have an average of 80% of the values are true
-	trend := float32(count / len(diagnostics.dataset))
-	return trend > 0.8
+	return diagnostics.Stats["CrankshaftPositionSensor"].Max > 0
 }
 
 // Given the engine is running
