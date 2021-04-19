@@ -70,7 +70,8 @@ const DiagnosticsCSVHeader = "engine_running,warming,at_operating_temp,engine_id
 type MemsDiagnostics struct {
 	// validDataSet is set once we have a full set of readings in
 	// the sample dataset
-	validDataSet bool
+	validDataSet              bool
+	engineRunningDatasetCount int
 	// initialData is the first reading
 	initialData MemsData
 	// currentData is the latest reading
@@ -174,8 +175,26 @@ func (diagnostics *MemsDiagnostics) addToDataset(data MemsData) {
 
 	// shift the data in the buffer
 	if len(diagnostics.dataset) > maxDataset {
-		diagnostics.validDataSet = true
 		diagnostics.dataset = diagnostics.dataset[1:]
+	}
+
+	// if the engine is running
+	// then increment a counter to ensure we have a full
+	// sample set before analysing
+	if diagnostics.isEngineRunning() {
+		diagnostics.engineRunningDatasetCount++
+		if diagnostics.engineRunningDatasetCount > maxDataset {
+			// we have a full dataset with the engine running
+			// enable extended analysis
+			diagnostics.engineRunningDatasetCount = maxDataset
+			diagnostics.validDataSet = true
+		}
+	} else {
+		// engine isn't running so
+		// reset the engine running counter
+		diagnostics.engineRunningDatasetCount = 0
+		// disable extended analysis
+		diagnostics.validDataSet = false
 	}
 }
 
