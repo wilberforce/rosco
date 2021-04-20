@@ -28,8 +28,28 @@ const (
 	warmingFactor         = 11   // allow 11 seconds per degree to warm up to operating temperature
 )
 
+type ValidReading struct {
+	Min     int
+	Low     int
+	Nominal float64
+	High    int
+	Max     int
+}
+
+var (
+	ValidRpm                  = ValidReading{0, 800, 1250, 3000, 5000}
+	ValidCoolantTemperature   = ValidReading{5, 80, 88, 95, 100}
+	ValidAirIntakeTemperature = ValidReading{-20, 0, 25, 50, 100}
+	ValidColdIdle             = ValidReading{850, 900, 1000, 1200, 1250}
+	ValidWarmIdle             = ValidReading{650, 700, 850, 900, 1000}
+	ValidLambda               = ValidReading{5, 50, 435, 850, 900}
+	ValidMap                  = ValidReading{20, 30, 34, 60, 80}
+	ValidAFR                  = ValidReading{0, 12, 14.7, 18, 20}
+)
+
 // MemsAnalysisReport is the output from running the analysis
 type MemsAnalysisReport struct {
+	ReadingFault             bool
 	IsEngineRunning          bool
 	IsEngineWarming          bool
 	IsAtOperatingTemp        bool
@@ -127,6 +147,9 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 		// check the status of the sensors and running parameters
 		diagnostics.Analysis.IsEngineRunning = diagnostics.isEngineRunning()
 
+		// check if the data is valid
+		diagnostics.Analysis.ReadingFault = !diagnostics.isValidReading()
+
 		if diagnostics.Analysis.IsEngineRunning {
 			diagnostics.Analysis.IsEngineWarming = diagnostics.isEngineWarming()
 			diagnostics.Analysis.IsAtOperatingTemp = diagnostics.isAtOperatingTemperature()
@@ -136,7 +159,7 @@ func (diagnostics *MemsDiagnostics) Analyse() {
 			diagnostics.Analysis.IsClosedLoop = diagnostics.isClosedLoop()
 
 			// perform fault analysis once we have a sample dataset
-			if diagnostics.validDataSet {
+			if diagnostics.validDataSet && !diagnostics.Analysis.ReadingFault {
 				diagnostics.Analysis.MapFault = !diagnostics.isMapValid()
 				diagnostics.Analysis.O2SystemFault = !diagnostics.isO2SystemWorking()
 				diagnostics.Analysis.ThermostatFault = !diagnostics.isThermostatWorking()
@@ -226,6 +249,13 @@ func (diagnostics *MemsDiagnostics) getMetricStatistics(metricName string) Stats
 	stats := *NewStats(metricName, metricSample)
 	log.Debugf("stats for %s, %+v", metricName, stats)
 	return stats
+}
+
+func (diagnostics *MemsDiagnostics) isValidReading() bool {
+	rpmValid := diagnostics.currentData.EngineRPM > ValidRpm.Min && diagnostics.currentData.EngineRPM < ValidRpm.Max
+	lambdaValid := diagnostics.currentData.LambdaVoltage > ValidLambda.Min && diagnostics.currentData.LambdaVoltage < ValidLambda.Max
+	mapValid := diagnostics.currentData.ManifoldAbsolutePressure > float32(ValidMap.Min) && diagnostics.currentData.ManifoldAbsolutePressure < float32(ValidMap.Max)
+	return rpmValid && lambdaValid && mapValid
 }
 
 // Given the current engine rpm
