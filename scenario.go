@@ -41,7 +41,7 @@ func GetScenarios() ([]ScenarioDescription, error) {
 
 	if err == nil {
 		for _, file := range fileInfo {
-			if strings.HasSuffix(file.Name(), ".csv") {
+			if isValidLogFile(file) {
 				scenario := ScenarioDescription{}
 				scenario.Date = file.ModTime()
 				scenario.Name = file.Name()
@@ -57,6 +57,11 @@ func GetScenarios() ([]ScenarioDescription, error) {
 	log.Infof("sorted scenarios (%+v)", scenarios)
 
 	return scenarios, err
+}
+
+func isValidLogFile(file os.FileInfo) bool {
+	name := strings.ToLower(file.Name())
+	return strings.HasSuffix(name, ".csv")
 }
 
 // GetScenario returns the data for the given scenario
