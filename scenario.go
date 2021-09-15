@@ -60,8 +60,7 @@ func GetScenarios() ([]ScenarioDescription, error) {
 }
 
 func isValidLogFile(file os.FileInfo) bool {
-	name := strings.ToLower(file.Name())
-	return strings.HasSuffix(name, ".csv")
+	return strings.HasSuffix(strings.ToLower(file.Name()), ".csv")
 }
 
 // GetScenario returns the data for the given scenario
