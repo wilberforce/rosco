@@ -15,7 +15,7 @@ const (
 	minIdleMap            = 10   // Minimum MAP reading when the engine is running
 	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
-	engineOperatingTemp   = 80   // Engine is at operating temp when coolant temp > 80C
+	engineOperatingTemp   = 88   // Engine is at operating temp when coolant temp > 88C
 	bestAFR               = 14.7 // Ideal Air to Fuel ratio
 	lambdaLow             = 10   // Lambda minimum operating voltage
 	lambdaHigh            = 900  // Lambda maximum operating voltage
