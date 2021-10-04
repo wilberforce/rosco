@@ -14,7 +14,7 @@ const (
 	minCruiseRPM          = 2500 // Minimum expected RPM when "Cruising"
 	minIdleMap            = 10   // Minimum MAP reading when the engine is running
 	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
-	minIdleThrottleAngle  = 5    // an throttle angle > 5 degrees indicates the throttle pedal is depressed
+	minIdleThrottleAngle  = 10   // an throttle angle > 10 degrees indicates the throttle pedal is depressed
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
 	engineOperatingTemp   = 88   // Engine is at operating temp when coolant temp > 88C
 	bestAFR               = 14.7 // Ideal Air to Fuel ratio
@@ -296,7 +296,9 @@ func (diagnostics *MemsDiagnostics) isCoilTimeValid() bool {
 // And the sample rpm is stable
 // Then the engine is idling
 func (diagnostics *MemsDiagnostics) isEngineIdle() bool {
-	return diagnostics.isEngineRunning() && !diagnostics.isThrottleActive()
+	// if idle switch is off then the engine is idling
+	return diagnostics.isEngineRunning() && !diagnostics.currentData.IdleSwitch
+	//return diagnostics.isEngineRunning() && !diagnostics.isThrottleActive()
 }
 
 // The idle speed at cold and at operating temperature.
