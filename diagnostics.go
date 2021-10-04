@@ -365,7 +365,7 @@ func (diagnostics *MemsDiagnostics) isEngineCruising() bool {
 // When the temperature is above the operating temperature
 // Then the engine is at operating temperature
 func (diagnostics *MemsDiagnostics) isAtOperatingTemperature() bool {
-	return diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp && diagnostics.Stats["CoolantTemp"].Stddev < 5
+	return diagnostics.Stats["CoolantTemp"].Value >= engineOperatingTemp
 }
 
 // Given the engine coolant temperature is increasing at > 5%
