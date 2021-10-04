@@ -277,7 +277,8 @@ func (diagnostics *MemsDiagnostics) isCrankshaftPositionWorking() bool {
 // When the throttle is not depressed
 // Then the throttle is not active
 func (diagnostics *MemsDiagnostics) isThrottleActive() bool {
-	return diagnostics.Stats["ThrottleAngle"].Mean < minIdleThrottleAngle
+	return !diagnostics.isEngineIdle()
+	//return diagnostics.Stats["ThrottleAngle"].Mean < minIdleThrottleAngle
 }
 
 // Given the engine is running
