@@ -199,7 +199,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 		DTC0:                     df80.Dtc0,
 		DTC1:                     df80.Dtc1,
 		IdleSetPoint:             int(df80.IdleSetPoint),
-		IdleHot:                  int(df80.IdleHot) - 35,
+		IdleHot:                  int(df80.IdleHot), // was (idle - 35) but don't understand why this offset
 		IACPosition:              int(df80.IacPosition),
 		IdleSpeedDeviation:       int(df80.IdleSpeedDeviation),
 		IgnitionAdvanceOffset80:  int(df80.IgnitionAdvanceOffset80),
