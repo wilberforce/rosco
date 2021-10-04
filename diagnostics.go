@@ -14,6 +14,7 @@ const (
 	minCruiseRPM          = 2500 // Minimum expected RPM when "Cruising"
 	minIdleMap            = 10   // Minimum MAP reading when the engine is running
 	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
+	minIdleThrottleAngle  = 5    // an throttle angle > 5 degrees indicates the throttle pedal is depressed
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
 	engineOperatingTemp   = 88   // Engine is at operating temp when coolant temp > 88C
 	bestAFR               = 14.7 // Ideal Air to Fuel ratio
@@ -27,6 +28,7 @@ const (
 	maxIAC                = 160  // Maximum normal operation steps for the IAC / Stepper Motor
 	maxJackCount          = 200  // IAC increment attempts
 	warmingFactor         = 11   // allow 11 seconds per degree to warm up to operating temperature
+	maxCoilTime           = 4.0  // coil charge time should be < 4ms
 )
 
 type ValidReading struct {
@@ -275,7 +277,7 @@ func (diagnostics *MemsDiagnostics) isCrankshaftPositionWorking() bool {
 // When the throttle is not depressed
 // Then the throttle is not active
 func (diagnostics *MemsDiagnostics) isThrottleActive() bool {
-	return diagnostics.Stats["ThrottleAngle"].Mean < 5
+	return diagnostics.Stats["ThrottleAngle"].Mean < minIdleThrottleAngle
 }
 
 // Given the engine is running
@@ -283,7 +285,7 @@ func (diagnostics *MemsDiagnostics) isThrottleActive() bool {
 // Then the coil charge time should be less than 4ms
 func (diagnostics *MemsDiagnostics) isCoilTimeValid() bool {
 	if diagnostics.isEngineRunning() {
-		return diagnostics.Stats["CoilTime"].Mean < 0.4
+		return diagnostics.Stats["CoilTime"].Mean < maxCoilTime
 	}
 
 	// ignore if the engine is not running
