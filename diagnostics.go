@@ -11,6 +11,7 @@ const (
 	maxIdleColdRPM        = 1200 // Maximum expected RPM when running at Idle when cold
 	minIdleWarmRPM        = 700  // Minimum expected RPM when running at Idle when warm
 	maxIdleWarmRPM        = 900  // Maximum expected RPM when running at Idle when warm
+	minCruiseRPM          = 2500 // Minimum expected RPM when "Cruising"
 	minIdleMap            = 30   // Minimum MAP reading when the engine is running
 	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
@@ -43,8 +44,9 @@ var (
 	ValidColdIdle             = ValidReading{850, 900, 1000, 1200, 1250}
 	ValidWarmIdle             = ValidReading{650, 700, 850, 900, 1000}
 	ValidLambda               = ValidReading{5, 50, 435, 850, 900}
-	ValidMap                  = ValidReading{20, 30, 34, 60, 80}
+	ValidMap                  = ValidReading{20, 20, 34, 60, 80}
 	ValidAFR                  = ValidReading{0, 12, 14.7, 18, 20}
+	ValidCruiseSpeed          = ValidReading{2000, 2500, 3000, 4500, 6000}
 )
 
 // MemsAnalysisReport is the output from running the analysis
@@ -352,7 +354,7 @@ func (diagnostics *MemsDiagnostics) isIdleBaseValid() bool {
 // When the sample rpm is above idle
 // Then the engine is cruising
 func (diagnostics *MemsDiagnostics) isEngineCruising() bool {
-	return diagnostics.isThrottleActive() && diagnostics.Stats["EngineRPM"].Mean >= minIdleWarmRPM
+	return diagnostics.isThrottleActive() && diagnostics.Stats["EngineRPM"].Mean >= minCruiseRPM
 }
 
 // Given the engine coolant temperature is stable
@@ -366,7 +368,7 @@ func (diagnostics *MemsDiagnostics) isAtOperatingTemperature() bool {
 // When the engine coolant temperature is below the operating temperature
 // Then the engine is warming
 func (diagnostics *MemsDiagnostics) isEngineWarming() bool {
-	if diagnostics.isAtOperatingTemperature() == false {
+	if !diagnostics.isAtOperatingTemperature() {
 		return diagnostics.Stats["CoolantTemp"].Trend > 0.05
 	}
 
