@@ -21,7 +21,7 @@ type Stats struct {
 }
 
 const (
-	lambdaOscillationSwing = 300
+	lambdaOscillationSwing = 50
 	lambdaVoltageMetric    = "LambdaVoltage"
 )
 

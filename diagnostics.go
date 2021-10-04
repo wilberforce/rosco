@@ -12,7 +12,7 @@ const (
 	minIdleWarmRPM        = 700  // Minimum expected RPM when running at Idle when warm
 	maxIdleWarmRPM        = 900  // Maximum expected RPM when running at Idle when warm
 	minCruiseRPM          = 2500 // Minimum expected RPM when "Cruising"
-	minIdleMap            = 30   // Minimum MAP reading when the engine is running
+	minIdleMap            = 10   // Minimum MAP reading when the engine is running
 	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
 	engineOperatingTemp   = 80   // Engine is at operating temp when coolant temp > 80C
