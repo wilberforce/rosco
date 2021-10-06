@@ -220,7 +220,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 		LambdaStatus:             int(df7d.LambdaStatus),
 		ClosedLoop:               bool(df7d.LoopIndicator != 0),
 		LongTermFuelTrim:         int(df7d.LongTermFuelTrim) - 128,
-		ShortTermFuelTrim:        int(df7d.ShortTermFuelTrim),
+		ShortTermFuelTrim:        int(df7d.ShortTermFuelTrim) - 100,
 		FuelTrimCorrection:       int(df7d.ShortTermFuelTrim) - 100,
 		CarbonCanisterPurgeValve: int(df7d.CarbonCanisterPurgeValve),
 		DTC3:                     df7d.Dtc3,
