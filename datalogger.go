@@ -35,32 +35,40 @@ func NewMemsDataLogger(folder string, prefix string) *MemsDataLogger {
 	datalogger.file, datalogger.err = os.Create(filename)
 	checkError("Cannot create file", datalogger.err)
 
-	// add the header
-	datalogger.writer = csv.NewWriter(datalogger.file)
-	defer datalogger.writer.Flush()
+	if datalogger.err != nil {
+		// add the header
+		datalogger.writer = csv.NewWriter(datalogger.file)
+		defer datalogger.writer.Flush()
 
-	header := MemsDataHeader + "," + DiagnosticsCSVHeader
-	datalogger.err = datalogger.writer.Write(strings.Split(header, ","))
-	checkError("Cannot write header", datalogger.err)
+		header := MemsDataHeader + "," + DiagnosticsCSVHeader
+		datalogger.err = datalogger.writer.Write(strings.Split(header, ","))
+		checkError("Cannot write header", datalogger.err)
+	} else {
+		log.Errorf("Unable to create log file", datalogger.err)
+	}
 
 	return datalogger
 }
 
 func (datalogger *MemsDataLogger) WriteMemsDataToFile(memsdata MemsData) {
-	data := convertMemsDataToCSVData(memsdata)
-	datalogger.err = datalogger.writer.Write(data)
-	defer datalogger.writer.Flush()
-	checkError("Cannot write data", datalogger.err)
+	if datalogger.writer != nil {
+		data := convertMemsDataToCSVData(memsdata)
+		datalogger.err = datalogger.writer.Write(data)
+		defer datalogger.writer.Flush()
+		checkError("Cannot write data", datalogger.err)
+	}
 }
 
 func (datalogger *MemsDataLogger) Close() {
-	datalogger.err = datalogger.file.Close()
-	checkError("Cannot write data", datalogger.err)
+	if datalogger.file != nil {
+		datalogger.err = datalogger.file.Close()
+		checkError("Cannot write data", datalogger.err)
+	}
 }
 
 func checkError(message string, err error) {
 	if err != nil {
-		log.Infof(message, err)
+		log.Errorf(message, err)
 	}
 }
 
