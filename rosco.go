@@ -47,6 +47,8 @@ func NewMemsConnection(logfolder string) *MemsConnection {
 	m.CommandResponse = &MemsCommandResponse{}
 	// engine diagnostics
 	m.Diagnostics = NewMemsDiagnostics()
+	// responder
+	m.Responder = NewResponder()
 	// set status
 	m.Status = &MemsConnectionStatus{}
 	m.Status.Connected = false
