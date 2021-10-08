@@ -13,12 +13,14 @@ import (
 
 // RawData represents the raw data from the log file
 type RawData struct {
+	Time        string `csv:"#time"`
 	Dataframe7d string `csv:"0x7d_raw"`
 	Dataframe80 string `csv:"0x80_raw"`
 }
 
 // PlaybookResponse type
 type PlaybookResponse struct {
+	Timestamp   time.Time
 	Dataframe7d []byte
 	Dataframe80 []byte
 }
@@ -72,12 +74,12 @@ func (responder *Responder) openFile(filepath string) error {
 func (responder *Responder) loadScenarioCSV(filepath string) error {
 	var err error
 
-	_ = responder.openFile(filepath)
-
-	if err = gocsv.Unmarshal(responder.file, &responder.RawData); err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("error parsing scenario file")
-	} else {
-		log.WithFields(log.Fields{"Count": len(responder.RawData)}).Info("scenario loaded successfully")
+	if err = responder.openFile(filepath); err == nil {
+		if err = gocsv.Unmarshal(responder.file, &responder.RawData); err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("error parsing scenario file")
+		} else {
+			log.WithFields(log.Fields{"Count": len(responder.RawData)}).Info("scenario loaded successfully")
+		}
 	}
 
 	return err
@@ -85,6 +87,7 @@ func (responder *Responder) loadScenarioCSV(filepath string) error {
 
 // LoadScenario loads a scenario for playing from the ECU
 func (responder *Responder) LoadScenario(filepath string) error {
+	var timestamp time.Time
 	err := responder.loadScenarioCSV(filepath)
 
 	if err == nil {
@@ -97,6 +100,16 @@ func (responder *Responder) LoadScenario(filepath string) error {
 		// iterate the scenario extracting the raw dataframes into a sequential Playbook
 		for i := 0; i < len(responder.RawData); i++ {
 			pr := PlaybookResponse{}
+
+			// attempt to convert to time
+			if timestamp, err = time.Parse("15:04.0", responder.RawData[i].Time); err != nil {
+				if timestamp, err = time.Parse("15:04:05", responder.RawData[i].Time); err != nil {
+					log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
+					timestamp = time.Now()
+				}
+			}
+
+			pr.Timestamp = timestamp
 			pr.Dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
 			pr.Dataframe80 = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe80)
 
@@ -105,6 +118,32 @@ func (responder *Responder) LoadScenario(filepath string) error {
 	}
 
 	return err
+}
+
+// MovePositionToLocation finds and moves the position in the playbook to
+// the time location specified
+func (responder *Responder) MovePositionToLocation(timelocation time.Time) {
+	for i, r := range responder.Playbook.Responses {
+		if timelocation.Before(r.Timestamp) {
+			log.Printf("moving position from %v to %v", responder.Playbook.Position, i)
+			// set the position to the location after the specified time location
+			responder.Playbook.Position = i - 1
+			// exit loop
+			break
+		}
+	}
+}
+
+func (responder *Responder) GetFirst() PlaybookResponse {
+	return responder.Playbook.Responses[0]
+}
+
+func (responder *Responder) GetLast() PlaybookResponse {
+	return responder.Playbook.Responses[responder.Playbook.Count-1]
+}
+
+func (responder *Responder) GetCurrent() PlaybookResponse {
+	return responder.Playbook.Responses[responder.Playbook.Position]
 }
 
 // GetECUResponse returns an emulated response byte string
@@ -118,7 +157,7 @@ func (responder *Responder) GetECUResponse(cmd []byte) []byte {
 	// if the command is a dataframe request and we have a response file
 	// then use the response file
 	if responder.isDataframeRequest(command) {
-
+		// get the position of the next response
 		position := responder.Playbook.Position
 
 		if command == "7D" {

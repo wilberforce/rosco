@@ -3,6 +3,7 @@ package rosco
 import (
 	"bytes"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
 )
 
 // getScenarioPath returns the path to the scenario files

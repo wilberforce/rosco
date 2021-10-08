@@ -1,4 +1,4 @@
-// +build scenario
+/*// +build scenario*/
 
 package tests
 
@@ -7,6 +7,7 @@ import (
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
 	"testing"
+	"time"
 )
 
 func TestGetScenarios(t *testing.T) {
@@ -14,6 +15,47 @@ func TestGetScenarios(t *testing.T) {
 
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, len(scenarios), is.GreaterThan(0))
+}
+
+func TestLoadScenario(t *testing.T) {
+	port := "nofaults-warm.csv"
+	r := rosco.NewResponder()
+	err := r.LoadScenario(port)
+	then.AssertThat(t, err, is.Nil())
+}
+
+func TestSeekLocationInScenario(t *testing.T) {
+	port := "nofaults-warm.csv"
+	r := rosco.NewResponder()
+	err := r.LoadScenario(port)
+	then.AssertThat(t, err, is.Nil())
+
+	tm, _ := time.Parse("15:04:05", "16:00:30")
+	r.MovePositionToLocation(tm)
+	then.AssertThat(t, r.Playbook.Position, is.EqualTo(19))
+
+	response := r.GetECUResponse([]byte{0x7D})
+	then.AssertThat(t, int(response[31]), is.EqualTo(16))
+}
+
+func TestLocationDatainScenario(t *testing.T) {
+	port := "nofaults-warm.csv"
+	r := rosco.NewResponder()
+	err := r.LoadScenario(port)
+	then.AssertThat(t, err, is.Nil())
+
+	f := r.GetFirst()
+	tm, _ := time.Parse("15:04:05", "16:00:00")
+	then.AssertThat(t, f.Timestamp, is.EqualTo(tm))
+
+	tm, _ = time.Parse("15:04:05", "16:00:30")
+	r.MovePositionToLocation(tm)
+	c := r.GetCurrent()
+	then.AssertThat(t, c.Timestamp, is.EqualTo(tm))
+
+	l := r.GetLast()
+	tm, _ = time.Parse("15:04:05", "16:00:48")
+	then.AssertThat(t, l.Timestamp, is.EqualTo(tm))
 }
 
 func TestConnectInitialiseScenario(t *testing.T) {
