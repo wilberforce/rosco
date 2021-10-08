@@ -44,21 +44,21 @@ type ScenarioDescription struct {
 	SampleData []int     `json:"sample"`
 }
 
-// Responder struct
-type Responder struct {
+// ScenarioResponder struct
+type ScenarioResponder struct {
 	file     *os.File
 	RawData  []*RawData
 	Playbook Playbook
 }
 
-// NewResponder creates an instance of a responder
-func NewResponder() *Responder {
-	responder := &Responder{}
+// NewResponder creates an instance of a Responder
+func NewResponder() *ScenarioResponder {
+	responder := &ScenarioResponder{}
 	return responder
 }
 
 // Open the CSV scenario file
-func (responder *Responder) openFile(filepath string) error {
+func (responder *ScenarioResponder) openFile(filepath string) error {
 	var err error
 
 	responder.file, err = os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, os.ModePerm)
@@ -71,7 +71,7 @@ func (responder *Responder) openFile(filepath string) error {
 }
 
 // Load the scenario
-func (responder *Responder) loadScenarioCSV(filepath string) error {
+func (responder *ScenarioResponder) loadScenarioCSV(filepath string) error {
 	var err error
 
 	if err = responder.openFile(filepath); err == nil {
@@ -86,7 +86,7 @@ func (responder *Responder) loadScenarioCSV(filepath string) error {
 }
 
 // LoadScenario loads a scenario for playing from the ECU
-func (responder *Responder) LoadScenario(filepath string) error {
+func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 	var timestamp time.Time
 	err := responder.loadScenarioCSV(filepath)
 
@@ -124,7 +124,7 @@ func (responder *Responder) LoadScenario(filepath string) error {
 
 // MovePositionToLocation finds and moves the position in the playbook to
 // the time location specified
-func (responder *Responder) MovePositionToLocation(timelocation time.Time) {
+func (responder *ScenarioResponder) MovePositionToLocation(timelocation time.Time) {
 	for i, r := range responder.Playbook.Responses {
 		if timelocation.Before(r.Timestamp) {
 			log.Printf("moving position from %v to %v", responder.Playbook.Position, i)
@@ -136,20 +136,20 @@ func (responder *Responder) MovePositionToLocation(timelocation time.Time) {
 	}
 }
 
-func (responder *Responder) GetFirst() PlaybookResponse {
+func (responder *ScenarioResponder) GetFirst() PlaybookResponse {
 	return responder.Playbook.Responses[0]
 }
 
-func (responder *Responder) GetLast() PlaybookResponse {
+func (responder *ScenarioResponder) GetLast() PlaybookResponse {
 	return responder.Playbook.Responses[responder.Playbook.Count-1]
 }
 
-func (responder *Responder) GetCurrent() PlaybookResponse {
+func (responder *ScenarioResponder) GetCurrent() PlaybookResponse {
 	return responder.Playbook.Responses[responder.Playbook.Position]
 }
 
 // GetECUResponse returns an emulated response byte string
-func (responder *Responder) GetECUResponse(cmd []byte) []byte {
+func (responder *ScenarioResponder) GetECUResponse(cmd []byte) []byte {
 	var data []byte
 
 	// convert the command code to a string
@@ -199,12 +199,12 @@ func (responder *Responder) GetECUResponse(cmd []byte) []byte {
 }
 
 // determines where the command code is a dataframe request
-func (responder *Responder) isDataframeRequest(command string) bool {
+func (responder *ScenarioResponder) isDataframeRequest(command string) bool {
 	return (command == "80" || command == "7D")
 }
 
 // converts the hex string to a byte array
-func (responder *Responder) convertHexStringToByteArray(response string) []byte {
+func (responder *ScenarioResponder) convertHexStringToByteArray(response string) []byte {
 	// convert to byte array
 	data, _ := hex.DecodeString(response)
 
@@ -213,7 +213,7 @@ func (responder *Responder) convertHexStringToByteArray(response string) []byte 
 
 // if we're responding to a command that isn't a dataframe request
 // then generate the correct response
-func (responder *Responder) generateECUResponse(command string) []byte {
+func (responder *ScenarioResponder) generateECUResponse(command string) []byte {
 	command = strings.ToUpper(command)
 
 	r := responseMap[command]

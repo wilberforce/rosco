@@ -27,7 +27,7 @@ type MemsConnection struct {
 	CommandResponse *MemsCommandResponse
 	Diagnostics     *MemsDiagnostics
 	Status          *MemsConnectionStatus
-	responder       *Responder
+	Responder       *ScenarioResponder
 	datalogger      *MemsDataLogger
 	logfolder       string
 }
@@ -74,7 +74,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 
 		log.Infof("loading scenario file %s", port)
 
-		mems.responder = NewResponder()
+		mems.Responder = NewResponder()
 	}
 
 	if !mems.Status.Connected {
@@ -479,7 +479,7 @@ func (mems *MemsConnection) connect(port string) {
 	mems.Status.Initialised = false
 
 	if mems.Status.Emulated {
-		err = mems.responder.LoadScenario(port)
+		err = mems.Responder.LoadScenario(port)
 	} else {
 		// connect to the ecu, timeout if we don't get data after a couple of seconds
 		c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
@@ -596,7 +596,7 @@ func (mems *MemsConnection) readSerial() []byte {
 
 	if mems.Status.Emulated {
 		// emulate the response
-		data = mems.responder.GetECUResponse(mems.CommandResponse.Command)
+		data = mems.Responder.GetECUResponse(mems.CommandResponse.Command)
 		log.Infof("read scenario data (%+v), %d bytes", data, n)
 	} else {
 		if mems.Status.Connected {
