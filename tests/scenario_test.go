@@ -39,22 +39,23 @@ func TestSeekLocationInScenario(t *testing.T) {
 }
 
 func TestLocationDatainScenario(t *testing.T) {
-	port := "nofaults-warm.csv"
+	port := "diagnostic.csv"
 	r := rosco.NewResponder()
 	err := r.LoadScenario(port)
 	then.AssertThat(t, err, is.Nil())
 
 	f := r.GetFirst()
-	tm, _ := time.Parse("15:04:05", "16:00:00")
+	tm, _ := time.Parse("15:04:05.000", "11:29:54.954")
 	then.AssertThat(t, f.Timestamp, is.EqualTo(tm))
 
-	tm, _ = time.Parse("15:04:05", "16:00:30")
+	tm, _ = time.Parse("15:04:05", "11:30:00")
 	r.MovePositionToLocation(tm)
 	c := r.GetCurrent()
-	then.AssertThat(t, c.Timestamp, is.EqualTo(tm))
+	cm, _ := time.Parse("15:04:05.000", "11:29:59.973")
+	then.AssertThat(t, c.Timestamp, is.EqualTo(cm))
 
 	l := r.GetLast()
-	tm, _ = time.Parse("15:04:05", "16:00:48")
+	tm, _ = time.Parse("15:04:05.000", "11:31:04.984")
 	then.AssertThat(t, l.Timestamp, is.EqualTo(tm))
 }
 

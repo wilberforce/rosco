@@ -102,10 +102,12 @@ func (responder *Responder) LoadScenario(filepath string) error {
 			pr := PlaybookResponse{}
 
 			// attempt to convert to time
-			if timestamp, err = time.Parse("15:04.0", responder.RawData[i].Time); err != nil {
+			if timestamp, err = time.Parse("15:04:05.000", responder.RawData[i].Time); err != nil {
 				if timestamp, err = time.Parse("15:04:05", responder.RawData[i].Time); err != nil {
-					log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
-					timestamp = time.Now()
+					if timestamp, err = time.Parse("04:05.0", responder.RawData[i].Time); err != nil {
+						log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
+						timestamp = time.Now()
+					}
 				}
 			}
 
