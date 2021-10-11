@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	MemsFolder = "MemsFCR"
-	LogsFolder = "Logs"
+	MemsFolder  = "MemsFCR"
+	LogsFolder  = "Logs"
+	DebugFolder = "Debug"
 )
 
 func GetHomeFolder() string {
@@ -24,7 +25,7 @@ func GetHomeFolder() string {
 		dir, _ = homedir.Dir()
 	}
 
-	dir = fmt.Sprintf("%s/%s/", dir, MemsFolder)
+	dir = fmt.Sprintf("%s/%s", dir, MemsFolder)
 
 	return filepath.FromSlash(dir)
 }
@@ -35,8 +36,14 @@ func GetAppFolder() string {
 	return filepath.FromSlash(dir)
 }
 
+func GetDebugFolder() string {
+	dir := GetHomeFolder()
+	dir = fmt.Sprintf("%s/%s/%s", dir, MemsFolder, LogsFolder)
+	return filepath.FromSlash(dir)
+}
+
 func GetLogFolder() string {
 	dir := GetHomeFolder()
-	dir = fmt.Sprintf("%s/%s/%s/", dir, MemsFolder, LogsFolder)
+	dir = fmt.Sprintf("%s/%s/%s", dir, MemsFolder, DebugFolder)
 	return filepath.FromSlash(dir)
 }
