@@ -21,7 +21,7 @@ func TestConnectInitialiseAndDisconnect(t *testing.T) {
 
 func TestGetDataframe(t *testing.T) {
 	port := getVirtualPort()
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Initialised, is.True())
@@ -44,7 +44,7 @@ func TestStats(t *testing.T) {
 	var data rosco.MemsData
 
 	port := getVirtualPort()
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Initialised, is.True())
@@ -70,7 +70,7 @@ func TestStats(t *testing.T) {
 func TestAdjustSTFT(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	trim := mems.AdjustShortTermFuelTrim(1)
@@ -86,7 +86,7 @@ func TestAdjustSTFT(t *testing.T) {
 func TestResetAdjustments(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ResetAdjustments()
@@ -96,7 +96,7 @@ func TestResetAdjustments(t *testing.T) {
 func TestResetECU(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ResetECU()
@@ -106,7 +106,7 @@ func TestResetECU(t *testing.T) {
 func TestClearFaults(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.ClearFaults()
@@ -116,7 +116,7 @@ func TestClearFaults(t *testing.T) {
 func TestGetIACPosition(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	success := mems.GetIACPosition()
@@ -126,7 +126,7 @@ func TestGetIACPosition(t *testing.T) {
 func TestIdleDecay(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.AdjustIdleDecay(1)
@@ -142,7 +142,7 @@ func TestIdleDecay(t *testing.T) {
 func TestIdleSpeed(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.AdjustIdleSpeed(1)
@@ -158,7 +158,7 @@ func TestIdleSpeed(t *testing.T) {
 func TestIgnitionAdvanceOffset(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.AdjustIgnitionAdvanceOffset(1)
@@ -174,7 +174,7 @@ func TestIgnitionAdvanceOffset(t *testing.T) {
 func TestIACPosition(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.AdjustIACPosition(1)
@@ -190,7 +190,7 @@ func TestIACPosition(t *testing.T) {
 func TestHeartbeat(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.SendHeartbeat()
@@ -202,7 +202,7 @@ func TestHeartbeat(t *testing.T) {
 func TestActuators(t *testing.T) {
 	port := getVirtualPort()
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	value := mems.TestFuelPump(true)

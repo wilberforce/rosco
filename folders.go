@@ -24,6 +24,8 @@ func GetHomeFolder() string {
 		dir, _ = homedir.Dir()
 	}
 
+	dir = fmt.Sprintf("%s/%s/", dir, MemsFolder)
+
 	return filepath.FromSlash(dir)
 }
 
@@ -35,5 +37,6 @@ func GetAppFolder() string {
 
 func GetLogFolder() string {
 	dir := GetHomeFolder()
-	return fmt.Sprintf("%s/%s/%s/", dir, MemsFolder, LogsFolder)
+	dir = fmt.Sprintf("%s/%s/%s/", dir, MemsFolder, LogsFolder)
+	return filepath.FromSlash(dir)
 }

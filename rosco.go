@@ -29,7 +29,7 @@ type MemsConnection struct {
 	Status          *MemsConnectionStatus
 	Responder       *ScenarioResponder
 	datalogger      *MemsDataLogger
-	logfolder       string
+	//logfolder       string
 }
 
 // MemsConnectionStatus are we?
@@ -42,7 +42,7 @@ type MemsConnectionStatus struct {
 }
 
 // NewMemsConnection creates a new mems structure
-func NewMemsConnection(logfolder string) *MemsConnection {
+func NewMemsConnection() *MemsConnection {
 	m := &MemsConnection{}
 	m.CommandResponse = &MemsCommandResponse{}
 	// engine diagnostics
@@ -56,7 +56,7 @@ func NewMemsConnection(logfolder string) *MemsConnection {
 	m.Status.Emulated = false
 	m.Status.ECUID = ""
 	m.Status.IACPosition = m.Diagnostics.Analysis.IACPosition
-	m.logfolder = logfolder
+	//m.logfolder = logfolder
 
 	return m
 }
@@ -71,7 +71,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 		mems.Status.Emulated = true
 
 		// expand to full path
-		port = fmt.Sprintf("%s/%s", mems.logfolder, port)
+		port = fmt.Sprintf("%s/%s", GetLogFolder(), port)
 		port = filepath.FromSlash(port)
 
 		log.Infof("loading scenario file %s", port)
@@ -94,7 +94,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 
 				if !mems.Status.Emulated {
 					// create a data log file
-					mems.datalogger = NewMemsDataLogger(mems.logfolder, mems.Status.ECUID)
+					mems.datalogger = NewMemsDataLogger(GetLogFolder(), mems.Status.ECUID)
 				}
 			}
 		}

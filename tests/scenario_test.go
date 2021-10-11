@@ -62,7 +62,7 @@ func TestLocationDatainScenario(t *testing.T) {
 func TestConnectInitialiseScenario(t *testing.T) {
 	port := "nofaults-warm.csv"
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Connected, is.True())
@@ -170,7 +170,7 @@ func TestStatsColdStartNoFaults(t *testing.T) {
 func testStatsScenario(t *testing.T, port string) *rosco.MemsDiagnostics {
 	var stats *rosco.MemsDiagnostics
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Initialised, is.True())
@@ -195,7 +195,7 @@ func BenchmarkScenario(b *testing.B) {
 	//var stats *rosco.MemsDiagnostics
 	port := "nofaults-cold.csv"
 
-	mems := rosco.NewMemsConnection(".")
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	for i := 0; i < 30; i++ {
