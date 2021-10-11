@@ -12,17 +12,19 @@ const (
 	MemsFolder  = "MemsFCR"
 	LogsFolder  = "Logs"
 	DebugFolder = "Debug"
+	sandbox     = false
 )
 
 func GetHomeFolder() string {
 	var dir string
 
 	// get the home directory
-	if runtime.GOOS == "darwin" {
+	dir, _ = homedir.Dir()
+
+	// override if sandboxed
+	if runtime.GOOS == "darwin" && sandbox {
 		// sandbox folder
 		dir = "./Documents"
-	} else {
-		dir, _ = homedir.Dir()
 	}
 
 	dir = fmt.Sprintf("%s/%s", dir, MemsFolder)
