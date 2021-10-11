@@ -44,17 +44,17 @@ func TestLocationDatainScenario(t *testing.T) {
 	err := r.LoadScenario(port)
 	then.AssertThat(t, err, is.Nil())
 
-	f := r.GetFirst()
+	f, _ := r.GetFirst()
 	tm, _ := time.Parse("15:04:05.000", "11:29:54.954")
 	then.AssertThat(t, f.Timestamp, is.EqualTo(tm))
 
 	tm, _ = time.Parse("15:04:05", "11:30:00")
 	r.MovePositionToLocation(tm)
-	c := r.GetCurrent()
+	c, _ := r.GetCurrent()
 	cm, _ := time.Parse("15:04:05.000", "11:29:59.973")
 	then.AssertThat(t, c.Timestamp, is.EqualTo(cm))
 
-	l := r.GetLast()
+	l, _ := r.GetLast()
 	tm, _ = time.Parse("15:04:05.000", "11:31:04.984")
 	then.AssertThat(t, l.Timestamp, is.EqualTo(tm))
 }

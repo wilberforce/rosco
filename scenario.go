@@ -67,12 +67,18 @@ func isValidLogFile(file os.FileInfo) bool {
 func GetScenario(id string) ScenarioDescription {
 	file := getScenarioPath(id)
 	r := NewResponder()
-	_ = r.LoadScenario(file)
+	err := r.LoadScenario(file)
 
 	scenario := ScenarioDescription{}
-	scenario.Count = r.Playbook.Count
-	scenario.Position = r.Playbook.Position
-	scenario.Name = id
+
+	if err == nil {
+		scenario.Count = r.Playbook.Count
+		scenario.Position = r.Playbook.Position
+		scenario.Name = id
+		scenario.Details.First, _ = r.GetFirst()
+		scenario.Details.Current, _ = r.GetCurrent()
+		scenario.Details.Last, _ = r.GetLast()
+	}
 
 	return scenario
 }
