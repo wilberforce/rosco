@@ -38,12 +38,12 @@ func GetAppFolder() string {
 
 func GetDebugFolder() string {
 	dir := GetHomeFolder()
-	dir = fmt.Sprintf("%s/%s/%s", dir, MemsFolder, LogsFolder)
+	dir = fmt.Sprintf("%s/%s", dir, LogsFolder)
 	return filepath.FromSlash(dir)
 }
 
 func GetLogFolder() string {
 	dir := GetHomeFolder()
-	dir = fmt.Sprintf("%s/%s/%s", dir, MemsFolder, DebugFolder)
+	dir = fmt.Sprintf("%s/%s", dir, DebugFolder)
 	return filepath.FromSlash(dir)
 }
