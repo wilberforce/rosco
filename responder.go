@@ -2,6 +2,7 @@ package rosco
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -136,16 +137,29 @@ func (responder *ScenarioResponder) MovePositionToLocation(timelocation time.Tim
 	}
 }
 
-func (responder *ScenarioResponder) GetFirst() PlaybookResponse {
-	return responder.Playbook.Responses[0]
+func (responder *ScenarioResponder) GetFirst() (PlaybookResponse, error) {
+	r, err := responder.getPlaybookRecord(0)
+	return r, err
 }
 
-func (responder *ScenarioResponder) GetLast() PlaybookResponse {
-	return responder.Playbook.Responses[responder.Playbook.Count-1]
+func (responder *ScenarioResponder) GetLast() (PlaybookResponse, error) {
+	r, err := responder.getPlaybookRecord(responder.Playbook.Count - 1)
+	return r, err
 }
 
-func (responder *ScenarioResponder) GetCurrent() PlaybookResponse {
-	return responder.Playbook.Responses[responder.Playbook.Position]
+func (responder *ScenarioResponder) GetCurrent() (PlaybookResponse, error) {
+	r, err := responder.getPlaybookRecord(responder.Playbook.Position)
+	return r, err
+}
+
+func (responder *ScenarioResponder) getPlaybookRecord(i int) (PlaybookResponse, error) {
+	var e error
+
+	if len(responder.Playbook.Responses) > 0 {
+		return responder.Playbook.Responses[i], e
+	} else {
+		return PlaybookResponse{}, errors.New("empty response file")
+	}
 }
 
 // GetECUResponse returns an emulated response byte string
