@@ -1,3 +1,4 @@
+//go:build emulated
 // +build emulated
 
 package tests
