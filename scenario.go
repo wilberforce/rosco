@@ -10,23 +10,15 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 // getScenarioPath returns the path to the scenario files
 func getScenarioPath(file string) string {
-	var filename string
-
-	homeFolder, _ := homedir.Dir()
-	appFolder := fmt.Sprintf("%s/memsfcr", homeFolder)
-
 	if file == "" {
-		filename = fmt.Sprintf("%s/logs", appFolder)
-	} else {
-		filename = fmt.Sprintf("%s/logs/%s", appFolder, file)
+		return GetLogFolder()
 	}
 
+	filename := fmt.Sprintf("%s/%s", GetLogFolder(), file)
 	return filepath.FromSlash(filename)
 }
 
