@@ -3,6 +3,7 @@ package rosco
 import (
 	"fmt"
 	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,9 +18,14 @@ const (
 
 func GetHomeFolder() string {
 	var dir string
+	var err error
 
 	// get the home directory
-	dir, _ = homedir.Dir()
+	dir, err = homedir.Dir()
+
+	if err != nil {
+		log.Warnf("error getting home folder %s", err)
+	}
 
 	// override if sandboxed
 	if runtime.GOOS == "darwin" && sandbox {
@@ -34,7 +40,12 @@ func GetHomeFolder() string {
 
 func GetAppFolder() string {
 	// get the application binary current directory
-	dir, _ := os.Getwd()
+	dir, err := os.Getwd()
+
+	if err != nil {
+		log.Warnf("error getting app folder %s", err)
+	}
+
 	return filepath.FromSlash(dir)
 }
 
