@@ -186,7 +186,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	// build the Mems Data frame using the raw data and applying the relevant
 	// adjustments and calculations
 	memsdata := MemsData{
-		Time:                     t.Format("15:04:05.000"),
+		Time:                     t.Format("2006-01-02 15:04:05.000"),
 		EngineRPM:                int(df80.EngineRpm),
 		CoolantTemp:              int(df80.CoolantTemp) - 55,
 		AmbientTemp:              int(df80.AmbientTemp) - 55,
