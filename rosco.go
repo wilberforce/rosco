@@ -157,10 +157,6 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	// read the raw dataframes
 	d80, d7d := mems.readRawDataFrames()
 
-	//if e != nil {
-	//	LogE.Printf("%s Unable to create memsdata, corrupt dataframes", ECUResponseTrace)
-	//}
-
 	// populate the DataFrame structure for command 0x80
 	r := bytes.NewReader(d80)
 	var df80 DataFrame80
