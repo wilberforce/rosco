@@ -93,9 +93,7 @@ func (datalogger *MemsDataLogger) WriteMemsDataToFile(memsdata MemsData) {
 }
 
 func (datalogger *MemsDataLogger) writeMemsDataToLogfile(data []string) {
-	var err error
-
-	err = datalogger.writer.Write(data)
+	err := datalogger.writer.Write(data)
 	defer datalogger.writer.Flush()
 
 	if err != nil {
