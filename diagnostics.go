@@ -7,16 +7,16 @@ import (
 )
 
 const (
-	minIdleColdRPM        = 900  // Minimum expected RPM when running at Idle when cold
-	maxIdleColdRPM        = 1200 // Maximum expected RPM when running at Idle when cold
-	minIdleWarmRPM        = 700  // Minimum expected RPM when running at Idle when warm
-	maxIdleWarmRPM        = 900  // Maximum expected RPM when running at Idle when warm
-	minCruiseRPM          = 2500 // Minimum expected RPM when "Cruising"
-	minIdleMap            = 10   // Minimum MAP reading when the engine is running
-	maxIdleMap            = 60   // Maximum MAP reading when the engine is running
-	minIdleThrottleAngle  = 10   // an throttle angle > 10 degrees indicates the throttle pedal is depressed
+	minIdleColdRPM = 900  // Minimum expected RPM when running at Idle when cold
+	maxIdleColdRPM = 1200 // Maximum expected RPM when running at Idle when cold
+	minIdleWarmRPM = 700  // Minimum expected RPM when running at Idle when warm
+	maxIdleWarmRPM = 900  // Maximum expected RPM when running at Idle when warm
+	minCruiseRPM   = 2500 // Minimum expected RPM when "Cruising"
+	minIdleMap     = 10   // Minimum MAP reading when the engine is running
+	maxIdleMap     = 60   // Maximum MAP reading when the engine is running
+	//minIdleThrottleAngle  = 10   // an throttle angle > 10 degrees indicates the throttle pedal is depressed
 	minMAPEngineOff       = 95   // Minimum MAP reading when the engine to not running
-	engineOperatingTemp   = 88   // Engine is at operating temp when coolant temp > 88C
+	engineOperatingTemp   = 80   // Engine is at operating temp when coolant temp > 80C
 	bestAFR               = 14.7 // Ideal Air to Fuel ratio
 	lambdaLow             = 10   // Lambda minimum operating voltage
 	lambdaHigh            = 900  // Lambda maximum operating voltage
