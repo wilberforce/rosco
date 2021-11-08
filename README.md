@@ -1,3 +1,30 @@
+```mermaid
+graph LR
+Engine{RPM} --> |= 0|EngineStopped(engine_running = false)
+Engine{RPM} --> |> 0|EngineRunning(engine_running = true)
+
+Temp{CTS} --> | < 80 |EngineWarming(warming = true)
+Temp{CTS} --> | > 80 |EngineWarm(at_operating_temp = true)
+```
+
+```mermaid
+graph LR  
+Start{engine_running = true} --> Ready(Sample for 20s)
+Ready --> QueryThrottle{Throttle < 4 degrees}  
+QueryThrottle --> |Throttle Idle|EngineIdle(Engine Idle)
+QueryThrottle -- Throttle Active --> QueryCruising{CTS > 80C}  
+QueryCruising -- Engine Warm --> QueryCruiseIdle{RPM STD 5%}  
+QueryCruiseIdle --> |Yes|IsCruising(Cruising) 
+EngineIdle --> QueryTemp{CTS > 80C}  
+QueryTemp -- Engine Cold --> QueryIdleCold{900 > RPM < 1200}  
+QueryTemp -- Engine Warming --> QueryWarming{RPM = +Trend}  
+QueryIdleCold --> |No|CTSFault(CTS or Thermostat Fault?)
+EngineIdle --> QueryIdleOffset{Idle Offset < 100}  
+QueryIdleOffset --> |No|IdleOffsetFault(Idle Error)
+QueryTemp -- Engine Warm --> QueryIdleHot{10 > Idle Hot < 50}  
+QueryIdleHot --> |No|IdleHotFault(Stepper Motor Fault?)
+```
+
 ## MemsFCR / ECU Communication Sequence
 
 ```mermaid
@@ -77,14 +104,30 @@ QueryTemp -- Engine Warm --> QueryIdleHot{10 > Idle Hot < 50}
 QueryIdleHot --> |No|IdleHotFault(Stepper Motor Fault?)
 ```
 
+## MAP Diagnostic Tree
+```mermaid  
+graph LR  
+Start{Is RPM > 0} --> |Engine is running| Ready(Sample for 20s)
+Start --> |Engine off| EngineOff(Ignition On, Engine Off)
+Ready -- Every Second --> Ready  
+Ready --> QueryMAP{30 > MAP < 60}
+QueryMAP --> |MAP Invalid|MAPF(MAP Fault)
+EngineOff --> QueryMAPOff{MAP < 90}
+QueryMAPOff --> |MAP Invalid|MAPF(MAP Fault)
+```
+
 ## O2 System Diagnostic Tree
 ```mermaid  
 graph LR  
 Start{Is RPM > 0} --> |Engine is running| Ready(Sample for 20s)
-Ready -- Every Second --> Ready  
-Ready --> QueryMAP{30 > MAP < 60}
-QueryMAP --> |MAP Invalid|MAPF(MAP Fault)
-Ready --> QueryCPS{CPS = 0}  
+Ready --> QueryTemp{CTS > 80C} 
+QueryTemp --> |Engine is warm|WarmEngine(Operating Temp)
+WarmEngine --> QueryLambdaStatus{Lambda Status = 1}
+QueryLambdaStatus --> |No|LambdaInvalid(Lambda Fault)
+WarmEngine --> QueryLambdaOsc{Lambda Oscillating?}
+QueryLambdaOsc --> |No|LambdaInvalid
+WarmEngine --> QueryLambdaVoltage{10mV > Lambda Voltage < 900mV}
+QueryLambdaVoltage --> |No|LambdaInvalid
 ```
 
 ## MemsFCR Log File Format and Applied Calculations to Raw Data
