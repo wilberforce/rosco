@@ -22,6 +22,7 @@ type RawData struct {
 // PlaybookResponse type
 type PlaybookResponse struct {
 	Timestamp   time.Time
+	Position    int
 	Dataframe7d []byte
 	Dataframe80 []byte
 }
@@ -176,7 +177,9 @@ func (responder *ScenarioResponder) getPlaybookRecord(i int) (PlaybookResponse, 
 	var e error
 
 	if len(responder.Playbook.Responses) > 0 {
-		return responder.Playbook.Responses[i], e
+		r := responder.Playbook.Responses[i]
+		r.Position = i
+		return r, e
 	} else {
 		return PlaybookResponse{}, errors.New("empty response file")
 	}
