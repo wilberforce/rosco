@@ -145,6 +145,18 @@ func (responder *ScenarioResponder) MovePositionToLocation(timelocation time.Tim
 	}
 }
 
+func (responder *ScenarioResponder) MoveToPosition(position int) {
+	if position < 0 {
+		position = 0
+	}
+
+	if position < responder.Playbook.Count {
+		log.Printf("moving position from %v to %v", responder.Playbook.Position, position)
+		// set the position to the specified location
+		responder.Playbook.Position = position
+	}
+}
+
 func (responder *ScenarioResponder) GetFirst() (PlaybookResponse, error) {
 	r, err := responder.getPlaybookRecord(0)
 	return r, err
