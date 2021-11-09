@@ -38,6 +38,19 @@ func TestSeekLocationInScenario(t *testing.T) {
 	then.AssertThat(t, int(response[31]), is.EqualTo(16))
 }
 
+func TestSeekPositionInScenario(t *testing.T) {
+	port := "nofaults-warm.csv"
+	r := rosco.NewResponder()
+	err := r.LoadScenario(port)
+	then.AssertThat(t, err, is.Nil())
+
+	r.MoveToPosition(19)
+	then.AssertThat(t, r.Playbook.Position, is.EqualTo(19))
+
+	response := r.GetECUResponse([]byte{0x7D})
+	then.AssertThat(t, int(response[31]), is.EqualTo(16))
+}
+
 func TestLocationDatainScenario(t *testing.T) {
 	port := "diagnostic.csv"
 	r := rosco.NewResponder()
