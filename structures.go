@@ -152,14 +152,50 @@ type (
 )
 
 const (
-	// AirSensorFaultCode 0x80 DTC0 Fault
-	AirSensorFaultCode = byte(0b00000001)
-	// CoolantSensorFaultCode 0x80 DTC0 Fault
-	CoolantSensorFaultCode = byte(0b00000010)
-	// FuelPumpFaultCode 0x80 DTC1 Fault
-	FuelPumpFaultCode = byte(0b00000001)
-	// ThrottlePotFaultCode 0x80 DTC1 Fault
+	// 80x0d DTC0 Fault Codes
+	// Coolant Sensor
+	CoolantSensorFaultCode = byte(0b00000001)
+	// Inlet Air Temperature Sensor
+	AirSensorFaultCode = byte(0b00000010)
+	// Turbo Overboost
+	TurboOverboostFaultCode = byte(0b00001000)
+	// Ambient Temperature Sensor
+	AmbientTempSensorFaultCode = byte(0b00010000)
+	// Fuel Rail Temp
+	FuelRailTempFaultCode = byte(0b00100000)
+	// Knock Fault Detected
+	KnockDetectedFaultCode = byte(0b01000000)
+
+	// 80x0d DTC1 Fault Codes
+	// Coolant Temp Gauge
+	CoolantTempGaugeFaultCode = byte(0b00000001)
+	// Fuel Pump Circuit Fault
+	FuelPumpFaultCode = byte(0b00000010)
+	// Aircon Clutch
+	AirConFaultCode = byte(0b00000100)
+	// Purge Valve
+	PurgeValveFaultCode = byte(0b00001000)
+	// MAP Sensor
+	MAPSensorFaultCode = byte(0b00010000)
+	// Boost Valve
+	BoostValveFaultCode = byte(0b00100000)
+	// Throttle Pot Fault Circuit Fault
 	ThrottlePotFaultCode = byte(0b01000000)
-	// IdleSwitchActive flag
+
+	// 7dx05 DTC2 Fault Codes
+	// Lambda Heater Relay
+	LambdaHeaterRelay = byte(0b00000100)
+	// Secondary Trigger Sync
+	SecondaryTriggerSync = byte(0b00001000)
+	// Fan 1 Control
+	Fan1Control = byte(0b00010000)
+	// Fan 2 Control
+	Fan2Control = byte(0b01000000)
+
+	// 7x0E DTC3 Fault Codes
+	// Prinary Trigger Sync
+	PrimaryTriggerSync = byte(0b00000001)
+
+	// 80x0a IdleSwitchActive
 	IdleSwitchActive = byte(0b00001000)
 )
