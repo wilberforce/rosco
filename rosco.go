@@ -37,6 +37,7 @@ type MemsConnectionStatus struct {
 	Emulated    bool   `json:"Emulated"`
 	Connected   bool   `json:"Connected"`
 	Initialised bool   `json:"Initialised"`
+	ECUSerial   string `json:"ECUSerial"`
 	ECUID       string `json:"ECUID"`
 	IACPosition int    `json:"IACPosition"`
 }
@@ -55,6 +56,7 @@ func NewMemsConnection() *MemsConnection {
 	m.Status.Initialised = false
 	m.Status.Emulated = false
 	m.Status.ECUID = ""
+	m.Status.ECUSerial = ""
 	m.Status.IACPosition = m.Diagnostics.Analysis.IACPosition
 	//m.logfolder = logfolder
 
@@ -120,6 +122,7 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 	mems.Status.Initialised = false
 	mems.Status.Emulated = false
 	mems.Status.ECUID = ""
+	mems.Status.ECUSerial = ""
 	mems.Status.IACPosition = 0
 
 	return *mems.Status
@@ -287,6 +290,23 @@ func (mems *MemsConnection) GetIACPosition() int {
 	} else {
 		log.Warnf("ecu iac position invalid, received (%s)", fmt.Sprintf("%x", data))
 		return MEMSIACPositionDefault
+	}
+}
+
+// GetECUSerial returns the current ECU Serial and ID
+func (mems *MemsConnection) GetECUSerial() string {
+	var data []byte
+
+	log.Info("reading ecu serial")
+	data = mems.sendCommandAndWaitResponse(MEMSGetECUSerial)
+
+	if len(data) > 1 {
+		ecuSerial := string(data[1:9])
+		log.Infof("ecu serial, received (%s), serial (%s)", fmt.Sprintf("%x", data), ecuSerial)
+		return string(ecuSerial)
+	} else {
+		log.Warnf("ecu serial invalid, received (%s)", fmt.Sprintf("%x", data))
+		return mems.Status.ECUID
 	}
 }
 
@@ -564,6 +584,8 @@ func (mems *MemsConnection) initialise() {
 				iac, _ := binary.Uvarint(response)
 				mems.Diagnostics.Analysis.IACPosition = int(iac)
 
+				// get the ECU Serial number
+				mems.Status.ECUSerial = mems.GetECUSerial()
 				mems.Status.Initialised = true
 			} else {
 				log.Error("timed out on intialisation sequence, closing connection")
