@@ -228,7 +228,8 @@ func (responder *ScenarioResponder) GetECUResponse(cmd []byte) []byte {
 			}
 		}
 	} else {
-		// generate the relevant response
+		// if a command request is made whilst we're replaying
+		// generate a relevant response from the response map
 		data = responder.generateECUResponse(command)
 	}
 
