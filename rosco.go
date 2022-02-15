@@ -588,7 +588,7 @@ func (mems *MemsConnection) initialise() {
 				mems.Status.ECUSerial = mems.GetECUSerial()
 				mems.Status.Initialised = true
 			} else {
-				log.Error("timed out on intialisation sequence, closing connection")
+				log.Error("timed out on initialisation sequence, closing connection")
 				_ = mems.SerialPort.Flush()
 				_ = mems.SerialPort.Close()
 				mems.Status.Connected = false
@@ -741,6 +741,7 @@ func init() {
 	responseMap["80"] = []byte{0x80, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B}
 	responseMap["7D"] = []byte{0x7d, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F}
 	responseMap["D0"] = []byte{0xD0, 0x99, 0x00, 0x03, 0x03}
+	responseMap["D1"] = []byte{0xD1, 0x41, 0x42, 0x4E, 0x4D, 0x50, 0x30, 0x30, 0x33, 0x99, 0x00, 0x03, 0x03}
 
 	// heartbeat
 	responseMap["F4"] = []byte{0xf4, 0x00}
@@ -809,39 +810,3 @@ func init() {
 	// generic response, expect command and single byte response
 	responseMap["00"] = []byte{0x00, 0x00}
 }
-
-/**
- * Repeatedly send command to open or close the idle air control valve until
- * it is in the desired Position. The valve does not necessarily move one full
- * step per serial command, depending on the rate at which the commands are
- * issued.
- */
-/*
- bool mems_move_iac(mems_info *info, uint8_t desired_pos)
- {
-   bool status = false;
-   uint16_t attempts = 0;
-   uint8_t current_pos = 0;
-   actuator_cmd cmd;
-
-   // read the current IAC Position, and only take action
-   // if we're not already at the desired point
-   if (mems_read_iac_position(info, &current_pos))
-   {
-	 if ((desired_pos < current_pos) ||
-		 ((desired_pos > current_pos) && (current_pos < IAC_MAXIMUM)))
-	 {
-	   cmd = (desired_pos > current_pos) ? MEMS_OpenIAC : MEMS_CloseIAC;
-
-	   do
-	   {
-		 status = mems_test_actuator(info, cmd, &current_pos);
-		 attempts += 1;
-	   } while (status && (current_pos != desired_pos) && (attempts < 300));
-	 }
-   }
-
-   status = (desired_pos == current_pos);
-
-   return status;
- }*/
