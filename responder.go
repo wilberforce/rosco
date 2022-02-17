@@ -50,6 +50,7 @@ type ScenarioDescription struct {
 	Status   string          `json:"status"`
 	Date     time.Time       `json:"Date"`
 	Details  ScenarioDetails `json:"Details"`
+	Summary  string          `json:"Summary"`
 }
 
 // ScenarioResponder struct
@@ -131,6 +132,11 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 
 	return err
 }
+
+// Save the scenario in binary format
+//func (responder *ScenarioResponder) SaveScenario(filepath string) error {
+//
+//}
 
 // MovePositionToLocation finds and moves the position in the playbook to
 // the time location specified
