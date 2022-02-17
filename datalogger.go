@@ -12,9 +12,11 @@ import (
 
 // MemsDataLogger logs the mems data to a CSV file
 type MemsDataLogger struct {
-	file   *os.File
-	writer *csv.Writer
-	IsOpen bool
+	file     *os.File
+	writer   *csv.Writer
+	Filepath string
+	Filename string
+	IsOpen   bool
 }
 
 const MemsDataHeader = "#time," +
@@ -44,6 +46,8 @@ func NewMemsDataLogger(folder string, prefix string) *MemsDataLogger {
 		log.Errorf("Unable to create log file %s (%s)", filename, err)
 	}
 
+	datalogger.Filepath = filename
+
 	return datalogger
 }
 
@@ -65,6 +69,7 @@ func openFile(datalogger *MemsDataLogger, filename string) error {
 
 	// create the file
 	datalogger.file, err = os.Create(filename)
+	datalogger.Filename = datalogger.file.Name()
 
 	if err != nil {
 		log.Errorf("unable to create log file %s (%s)", filename, err)
