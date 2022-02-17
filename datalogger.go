@@ -46,8 +46,6 @@ func NewMemsDataLogger(folder string, prefix string) *MemsDataLogger {
 		log.Errorf("Unable to create log file %s (%s)", filename, err)
 	}
 
-	datalogger.Filepath = filename
-
 	return datalogger
 }
 
@@ -69,7 +67,6 @@ func openFile(datalogger *MemsDataLogger, filename string) error {
 
 	// create the file
 	datalogger.file, err = os.Create(filename)
-	datalogger.Filename = datalogger.file.Name()
 
 	if err != nil {
 		log.Errorf("unable to create log file %s (%s)", filename, err)
@@ -77,6 +74,8 @@ func openFile(datalogger *MemsDataLogger, filename string) error {
 		// create a file write for the new file
 		createFileWriter(datalogger)
 		datalogger.IsOpen = true
+		datalogger.Filepath = filename
+		datalogger.Filename = filepath.Base(filename)
 	}
 
 	return err
