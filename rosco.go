@@ -28,8 +28,7 @@ type MemsConnection struct {
 	Diagnostics     *MemsDiagnostics
 	Status          *MemsConnectionStatus
 	Responder       *ScenarioResponder
-	datalogger      *MemsDataLogger
-	//logfolder       string
+	Datalogger      *MemsDataLogger
 }
 
 // MemsConnectionStatus are we?
@@ -96,7 +95,7 @@ func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
 
 				if !mems.Status.Emulated {
 					// create a data log file
-					mems.datalogger = NewMemsDataLogger(GetLogFolder(), mems.Status.ECUID)
+					mems.Datalogger = NewMemsDataLogger(GetLogFolder(), mems.Status.ECUID)
 				}
 			}
 		}
@@ -114,7 +113,7 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 	}
 
 	if !mems.Status.Emulated {
-		mems.datalogger.Close()
+		mems.Datalogger.Close()
 	}
 
 	// update the status
@@ -248,7 +247,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 
 	if !mems.Status.Emulated {
 		// write to the log file
-		go mems.datalogger.WriteMemsDataToFile(memsdata)
+		go mems.Datalogger.WriteMemsDataToFile(memsdata)
 	}
 
 	return memsdata
