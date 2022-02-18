@@ -8,7 +8,7 @@ import (
 )
 
 func TestSaveScenarioFile(t *testing.T) {
-	filepath := "test.scn"
+	filepath := "test.fcr"
 
 	s := rosco.NewScenarioFile(filepath)
 	s.Name = "Test"
@@ -20,7 +20,7 @@ func TestSaveScenarioFile(t *testing.T) {
 }
 
 func TestLoadScenarioFile(t *testing.T) {
-	filepath := "test.scn"
+	filepath := "test.fcr"
 	s := rosco.NewScenarioFile(filepath)
 	err := s.Read()
 
@@ -29,7 +29,7 @@ func TestLoadScenarioFile(t *testing.T) {
 }
 
 func TestConvertLogToScenarioFile(t *testing.T) {
-	s := rosco.NewScenarioFile("vacuum-fault.scn")
+	s := rosco.NewScenarioFile("vacuum-fault.fcr")
 	err := s.ConvertLogToScenario("vacuum-fault.csv")
 
 	then.AssertThat(t, err, is.Nil())
@@ -37,7 +37,7 @@ func TestConvertLogToScenarioFile(t *testing.T) {
 }
 
 func TestConvertAndSaveScenarioFile(t *testing.T) {
-	s := rosco.NewScenarioFile("vacuum-fault.scn")
+	s := rosco.NewScenarioFile("vacuum-fault.fcr")
 	err := s.ConvertLogToScenario("vacuum-fault.csv")
 
 	then.AssertThat(t, err, is.Nil())

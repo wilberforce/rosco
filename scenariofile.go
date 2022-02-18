@@ -10,11 +10,13 @@ import (
 type ScenarioFile struct {
 	filePath string
 
-	Name    string     `json:"Name"`
-	Count   int        `json:"Count"`
-	Date    time.Time  `json:"Date"`
-	Summary string     `json:"Summary"`
-	RawData []*RawData `json:"MemsData"`
+	Name      string     `json:"Name"`
+	Count     int        `json:"Count"`
+	Date      time.Time  `json:"Date"`
+	Summary   string     `json:"Summary"`
+	ECUID     string     `json:"ECUID"`
+	ECUSerial string     `json:"ECUSerial"`
+	RawData   []*RawData `json:"MemsData"`
 }
 
 func NewScenarioFile(filepath string) *ScenarioFile {
