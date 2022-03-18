@@ -1,6 +1,3 @@
-//go:build emulated
-// +build emulated
-
 package tests
 
 import (
@@ -11,8 +8,8 @@ import (
 )
 
 func TestConnectInitialiseAndDisconnect(t *testing.T) {
-	port := getVirtualPort()
-	mems := rosco.NewMemsConnection(".")
+	port := GetVirtualPort()
+	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Connected, is.True())
@@ -20,7 +17,7 @@ func TestConnectInitialiseAndDisconnect(t *testing.T) {
 }
 
 func TestGetDataframe(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
 
@@ -40,35 +37,8 @@ func TestGetDataframe(t *testing.T) {
 	}
 }
 
-func TestStats(t *testing.T) {
-	var data rosco.MemsData
-
-	port := getVirtualPort()
-	mems := rosco.NewMemsConnection()
-	mems.ConnectAndInitialiseECU(port)
-
-	then.AssertThat(t, mems.Status.Initialised, is.True())
-
-	if mems.Status.Initialised {
-		// get 30 data points
-		for i := 0; i < 30; i++ {
-			data = mems.GetDataframes()
-
-			then.AssertThat(t, data.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
-			then.AssertThat(t, data.IdleSpeedOffset, is.EqualTo(10))
-			then.AssertThat(t, mems.CommandResponse.Command, is.EqualTo(rosco.MEMSDataFrame))
-			then.AssertThat(t, mems.CommandResponse.Response, is.EqualTo(rosco.MEMSDataFrame))
-			then.AssertThat(t, mems.CommandResponse.MemsDataFrame.BatteryVoltage, is.GreaterThanOrEqualTo(11.0))
-		}
-
-		mems.Diagnostics.Analyse()
-		stats := mems.Diagnostics
-		then.AssertThat(t, stats.Stats["LambdaVoltage"].Mean, is.GreaterThanOrEqualTo(0.0))
-	}
-}
-
 func TestAdjustSTFT(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -84,7 +54,7 @@ func TestAdjustSTFT(t *testing.T) {
 }
 
 func TestResetAdjustments(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -94,7 +64,7 @@ func TestResetAdjustments(t *testing.T) {
 }
 
 func TestResetECU(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -104,7 +74,7 @@ func TestResetECU(t *testing.T) {
 }
 
 func TestClearFaults(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -114,7 +84,7 @@ func TestClearFaults(t *testing.T) {
 }
 
 func TestGetIACPosition(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -124,7 +94,7 @@ func TestGetIACPosition(t *testing.T) {
 }
 
 func TestIdleDecay(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -140,7 +110,7 @@ func TestIdleDecay(t *testing.T) {
 }
 
 func TestIdleSpeed(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -156,7 +126,7 @@ func TestIdleSpeed(t *testing.T) {
 }
 
 func TestIgnitionAdvanceOffset(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -172,7 +142,7 @@ func TestIgnitionAdvanceOffset(t *testing.T) {
 }
 
 func TestIACPosition(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -188,7 +158,7 @@ func TestIACPosition(t *testing.T) {
 }
 
 func TestHeartbeat(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -200,7 +170,7 @@ func TestHeartbeat(t *testing.T) {
 }
 
 func TestActuators(t *testing.T) {
-	port := getVirtualPort()
+	port := GetVirtualPort()
 
 	mems := rosco.NewMemsConnection()
 	mems.ConnectAndInitialiseECU(port)
@@ -252,12 +222,6 @@ func TestActuators(t *testing.T) {
 
 	value = mems.TestCoil(false)
 	then.AssertThat(t, value, is.True())
-
-	//value = mems.TestFan1(true)
-	//then.AssertThat(t, value, is.True())
-
-	//value = mems.TestFan1(false)
-	//then.AssertThat(t, value, is.True())
 
 	value = mems.TestFan2(true)
 	then.AssertThat(t, value, is.True())

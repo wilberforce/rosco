@@ -27,6 +27,10 @@ const MemsDataHeader = "#time," +
 	"7dx0B_long_term_fuel_trim,7dx0C_short_term_fuel_trim,7dx0D_carbon_canister_dutycycle,7dx0E_dtc3,7dx0F_idle_base_pos,7dx10_uk7,7dx11_dtc4,7dx12_ignition_advance2,7dx13_idle_speed_offset,7dx14_idle_error2," +
 	"7dx14-15_uk10,7dx16_dtc5,7dx17_uk11,7dx18_uk12,7dx19_uk13,7dx1A_uk14,7dx1B_uk15,7dx1C_uk16,7dx1D_uk17,7dx1E_uk18,7dx1F_uk19,0x7d_raw,0x80_raw"
 
+const DiagnosticsCSVHeader = "engine_running,warming,at_operating_temp,engine_idle,idle_fault,idle_speed_fault,idle_error_fault,idle_hot_fault," +
+	"cruising,closed_loop,closed_loop_expected,closed_loop_fault,throttle_active,map_fault,vacuum_fault,iac_fault,iac_range_fault,iac_jack_fault,o2_system_fault," +
+	"lambda_range_fault,lambda_oscillation_fault,thermostat_fault,crankshaft_sensor_fault,coil_fault"
+
 // NewMemsDataLogger logs the mems data to a CSV file
 func NewMemsDataLogger(folder string, prefix string) *MemsDataLogger {
 	var err error
@@ -203,17 +207,17 @@ func convertMemsDataToCSVData(data MemsData) []string {
 		data.Analytics.IsEngineIdle,
 		data.Analytics.IsEngineIdleFault,
 		data.Analytics.IdleSpeedFault,
-		data.Analytics.IdleErrorFault,
+		false, //data.Analytics.IdleErrorFault,
 		data.Analytics.IdleHotFault,
-		data.Analytics.IsCruising,
+		false, //data.Analytics.IsCruising,
 		data.Analytics.IsClosedLoop,
-		data.Analytics.IsClosedLoopExpected,
-		data.Analytics.ClosedLoopFault,
+		false, //data.Analytics.IsClosedLoopExpected,
+		false, //data.Analytics.ClosedLoopFault,
 		data.Analytics.IsThrottleActive,
 		data.Analytics.MapFault,
 		data.Analytics.VacuumFault,
 		data.Analytics.IdleAirControlFault,
-		data.Analytics.IdleAirControlRangeFault,
+		false, //data.Analytics.IdleAirControlRangeFault,
 		data.Analytics.IdleAirControlJackFault,
 		data.Analytics.O2SystemFault,
 		data.Analytics.LambdaRangeFault,

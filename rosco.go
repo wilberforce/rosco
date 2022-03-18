@@ -25,7 +25,7 @@ type MemsCommandResponse struct {
 type MemsConnection struct {
 	SerialPort      *serial.Port
 	CommandResponse *MemsCommandResponse
-	Diagnostics     *MemsDiagnostics
+	Diagnostics     *DataframeAnalysis
 	Status          *MemsConnectionStatus
 	Responder       *ScenarioResponder
 	Datalogger      *MemsDataLogger
@@ -46,7 +46,7 @@ func NewMemsConnection() *MemsConnection {
 	m := &MemsConnection{}
 	m.CommandResponse = &MemsCommandResponse{}
 	// engine diagnostics
-	m.Diagnostics = NewMemsDiagnostics()
+	m.Diagnostics = NewDataframeAnalysis(20)
 	// responder
 	m.Responder = NewResponder()
 	// set status
@@ -57,7 +57,6 @@ func NewMemsConnection() *MemsConnection {
 	m.Status.ECUID = ""
 	m.Status.ECUSerial = ""
 	m.Status.IACPosition = m.Diagnostics.Analysis.IACPosition
-	//m.logfolder = logfolder
 
 	return m
 }
@@ -131,7 +130,7 @@ func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
 func (mems *MemsConnection) ResetDiagnostics() {
 	// update the status
 	log.Info("resetting ecu diagnostics")
-	mems.Diagnostics = NewMemsDiagnostics()
+	mems.Diagnostics = NewDataframeAnalysis(20)
 }
 
 // GetStatus returns the connection and ECU status
@@ -239,8 +238,7 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 	mems.CommandResponse.Response = MEMSDataFrame
 	mems.CommandResponse.MemsDataFrame = memsdata
 
-	mems.Diagnostics.Add(memsdata)
-	mems.Diagnostics.Analyse()
+	mems.Diagnostics.Analyse(memsdata)
 	memsdata.Analytics = mems.Diagnostics.Analysis
 
 	log.Infof("generated mems data from dataframe (%+v)", memsdata)
@@ -582,6 +580,7 @@ func (mems *MemsConnection) initialise() {
 				response := mems.readSerial()
 				iac, _ := binary.Uvarint(response)
 				mems.Diagnostics.Analysis.IACPosition = int(iac)
+				log.Infof("IAC Position %d", iac)
 
 				// get the ECU Serial number
 				mems.Status.ECUSerial = mems.GetECUSerial()

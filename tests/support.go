@@ -53,7 +53,7 @@ func init() {
 	//log.SetReportCaller(true)
 }
 
-func getVirtualPort() string {
+func GetVirtualPort() string {
 	if runtime.GOOS == "darwin" {
 		// ensure memsulator is running for tests to pass
 		homeFolder, _ := homedir.Dir()
