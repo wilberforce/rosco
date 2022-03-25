@@ -4,33 +4,21 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
-	"math"
-	"path/filepath"
-	"strings"
-	"time"
-
 	log "github.com/sirupsen/logrus"
-	"github.com/tarm/serial"
+	"math"
+	"reflect"
+	"time"
 )
 
-// MemsCommandResponse communication pair
-type MemsCommandResponse struct {
-	Command       []byte   `json:"Command"`
-	Response      []byte   `json:"Response"`
-	MemsDataFrame MemsData `json:"MemsData"`
+// ECUReaderInstance communication structure for MEMS
+type ECUReaderInstance struct {
+	ecuReader   ECUReader
+	Status      *ECUStatus
+	Diagnostics *DataframeAnalysis
+	Datalogger  *MemsDataLogger
 }
 
-// MemsConnection communication structure for MEMS
-type MemsConnection struct {
-	SerialPort      *serial.Port
-	CommandResponse *MemsCommandResponse
-	Diagnostics     *DataframeAnalysis
-	Status          *MemsConnectionStatus
-	Responder       *ScenarioResponder
-	Datalogger      *MemsDataLogger
-}
-
+/*
 // MemsConnectionStatus are we?
 type MemsConnectionStatus struct {
 	Emulated    bool   `json:"Emulated"`
@@ -40,148 +28,96 @@ type MemsConnectionStatus struct {
 	ECUID       string `json:"ECUID"`
 	IACPosition int    `json:"IACPosition"`
 }
-
-// NewMemsConnection creates a new mems structure
-func NewMemsConnection() *MemsConnection {
-	m := &MemsConnection{}
-	m.CommandResponse = &MemsCommandResponse{}
-	// engine diagnostics
+*/
+// NewECUReaderInstance creates a new mems structure
+func NewECUReaderInstance() *ECUReaderInstance {
+	m := &ECUReaderInstance{}
+	m.Status = &ECUStatus{}
 	m.Diagnostics = NewDataframeAnalysis(20)
-	// responder
-	m.Responder = NewResponder()
-	// set status
-	m.Status = &MemsConnectionStatus{}
-	m.Status.Connected = false
-	m.Status.Initialised = false
-	m.Status.Emulated = false
-	m.Status.ECUID = ""
-	m.Status.ECUSerial = ""
-	m.Status.IACPosition = m.Diagnostics.Analysis.IACPosition
+	m.resetStatus()
 
 	return m
 }
 
-// ConnectAndInitialiseECU connect and initialise the ECU
-func (mems *MemsConnection) ConnectAndInitialiseECU(port string) {
-	log.Infof("connecting to %s and initialising ecu", port)
+func (ecu *ECUReaderInstance) ConnectAndInitialiseECU(port string) (bool, error) {
+	var err error
+	var connected bool
 
-	if mems.isScenario(port) {
-		log.Info("ecu connected and initialised in emulation mode")
-		// emulate ECU if scenario file is supplied
-		mems.Status.Emulated = true
+	ecu.ecuReader = NewECUReader(port)
 
-		// expand to full path
-		port = fmt.Sprintf("%s/%s", GetLogFolder(), port)
-		port = filepath.FromSlash(port)
-
-		log.Infof("loading scenario file %s", port)
-
-		mems.Responder = NewResponder()
-	}
-
-	if !mems.Status.Connected {
-
-		mems.connect(port)
-
-		if mems.Status.Connected {
-
-			mems.initialise()
-
-			if mems.Status.Initialised {
-				log.Info("ecu connected and initialised successfully")
-				// update status
-				mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
-
-				if !mems.Status.Emulated {
-					// create a data log file
-					mems.Datalogger = NewMemsDataLogger(GetLogFolder(), mems.Status.ECUID)
-				}
-			}
+	if connected, err = ecu.connectToECU(); err == nil {
+		if connected {
+			ecu.Status.Connected = true
+			// get the ecu id, serial number and iac position
+			ecu.Status.ECUID, err = ecu.getECUID()
+			ecu.Status.ECUSerial, err = ecu.getECUSerial()
+			ecu.Status.IACPosition, err = ecu.getIACPosition()
 		}
 	}
+
+	return ecu.Status.Connected, err
 }
 
-// Disconnect from the ECU
-func (mems *MemsConnection) Disconnect() MemsConnectionStatus {
-	log.Info("disconnecting ecu")
+func (ecu *ECUReaderInstance) Disconnect() error {
+	var err error
 
-	if mems.SerialPort != nil {
-		// close the connection
-		_ = mems.SerialPort.Flush()
-		_ = mems.SerialPort.Close()
+	if err = ecu.ecuReader.Disconnect(); err == nil {
+		log.Info("disconnected ecu")
+	} else {
+		log.Warnf("error disconnecting (%s)", err)
 	}
 
-	if !mems.Status.Emulated {
-		mems.Datalogger.Close()
-	}
+	ecu.resetStatus()
 
-	// update the status
-	mems.Status.Connected = false
-	mems.Status.Initialised = false
-	mems.Status.Emulated = false
-	mems.Status.ECUID = ""
-	mems.Status.ECUSerial = ""
-	mems.Status.IACPosition = 0
-
-	return *mems.Status
+	return err
 }
+
+func (ecu *ECUReaderInstance) connectToECU() (bool, error) {
+	return ecu.ecuReader.Connect()
+}
+
+/////
+// NOT SURE IF WE REFACTOR THESE OUT YET
 
 // ResetDiagnostics clears and resets the diagnostic data
-func (mems *MemsConnection) ResetDiagnostics() {
+func (ecu *ECUReaderInstance) ResetDiagnostics() {
 	// update the status
 	log.Info("resetting ecu diagnostics")
-	mems.Diagnostics = NewDataframeAnalysis(20)
+	ecu.Diagnostics = NewDataframeAnalysis(20)
 }
 
-// GetStatus returns the connection and ECU status
-func (mems *MemsConnection) GetStatus() MemsConnectionStatus {
-	log.Infof("getting ecu status (%+v)", mems.Status)
-	return *mems.Status
-}
-
-// sendCommandAndWaitResponse sends a command and returns the response
-func (mems *MemsConnection) sendCommandAndWaitResponse(cmd []byte) []byte {
-	var response []byte
-
-	mems.writeSerial(cmd)
-	response = mems.readSerial()
-
-	mems.CommandResponse.Command = cmd
-	mems.CommandResponse.Response = response
-
-	return response
-}
-
-func (mems *MemsConnection) GetDataframes() MemsData {
-	log.Info("getting 0x7d and 0x80 dataframes")
+func (ecu *ECUReaderInstance) GetDataframes() MemsData {
+	df := MemsData{}
 
 	// read the raw dataframes
-	d80, d7d := mems.readRawDataFrames()
+	log.Info("getting 0x7d and 0x80 dataframes")
+	d80, d7d := ecu.readRawDataFrames()
 
-	// populate the DataFrame structure for command 0x80
-	r := bytes.NewReader(d80)
-	var df80 DataFrame80
+	// create the dataframes from the raw binary df
+	if df80, err := ecu.createDataframe80(d80); err == nil {
+		if df7d, err := ecu.createDataframe7D(d7d); err == nil {
+			// build the Mems Dataframe using the raw df and applying the relevant adjustments and calculations
+			df = ecu.createMemsDataframe(df80, df7d)
+			// include the raw df converted into string format
+			df.Dataframe80 = hex.EncodeToString(d80)
+			df.Dataframe7d = hex.EncodeToString(d7d)
 
-	if err := binary.Read(r, binary.BigEndian, &df80); err != nil {
-		log.WithFields(log.Fields{"error": err}).Info("dataframe x80 binary.Read failed")
-	} else {
-		log.Infof("dataframe x80 received (data: %s dataframe: %s)", fmt.Sprintf("%x", r), fmt.Sprintf("%+v", df80))
+			log.Infof("generated ecu df from dataframe (%+v)", df)
+
+			ecu.Diagnostics.Analyse(df)
+			df.Analytics = ecu.Diagnostics.Analysis
+		}
 	}
 
-	// populate the DataFrame structure for command 0x7d
-	r = bytes.NewReader(d7d)
-	var df7d DataFrame7d
+	ecu.writeToLog(df)
 
-	if err := binary.Read(r, binary.BigEndian, &df7d); err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("dataframe x7d binary.Read failed")
-	} else {
-		log.Infof("dataframe x7d received (data: %s dataframe: %s)", fmt.Sprintf("%x", r), fmt.Sprintf("%+v", df7d))
-	}
+	return df
 
+}
+
+func (ecu *ECUReaderInstance) createMemsDataframe(df80 DataFrame80, df7d DataFrame7d) MemsData {
 	t := time.Now()
 
-	// build the Mems Data frame using the raw data and applying the relevant
-	// adjustments and calculations
 	memsdata := MemsData{
 		Time:                     t.Format("2006-01-02 15:04:05.000"),
 		EngineRPM:                int(df80.EngineRpm),
@@ -229,263 +165,158 @@ func (mems *MemsConnection) GetDataframes() MemsData {
 		IdleSpeedOffset:          int(df7d.IdleSpeedOffset), // - 128) * 25,
 		DTC5:                     df7d.Dtc5,
 		JackCount:                int(df7d.JackCount),
-		Dataframe80:              hex.EncodeToString(d80),
-		Dataframe7d:              hex.EncodeToString(d7d),
-	}
-
-	// add the data for diagnostics
-	mems.CommandResponse.Command = MEMSDataFrame
-	mems.CommandResponse.Response = MEMSDataFrame
-	mems.CommandResponse.MemsDataFrame = memsdata
-
-	mems.Diagnostics.Analyse(memsdata)
-	memsdata.Analytics = mems.Diagnostics.Analysis
-
-	log.Infof("generated mems data from dataframe (%+v)", memsdata)
-
-	if !mems.Status.Emulated {
-		// write to the log file
-		go mems.Datalogger.WriteMemsDataToFile(memsdata)
 	}
 
 	return memsdata
 }
 
-func (mems *MemsConnection) SendHeartbeat() bool {
-	log.Info("sending ecu heartbeat")
-	return mems.updateECUState(MEMSHeartbeat)
-}
+func (ecu *ECUReaderInstance) createDataframe7D(d7d []byte) (DataFrame7d, error) {
+	var err error
+	var df7d DataFrame7d
 
-// ResetAdjustments resets the adjustable values
-func (mems *MemsConnection) ResetAdjustments() bool {
-	log.Info("resetting  ecu adjustable values ")
-	return mems.updateECUState(MEMSResetAdj)
-}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Warnf("dataframe conversion panic occurred %s", err)
+		}
+	}()
 
-// ResetECU clears fault codes. resets adjustable values and learnt values
-func (mems *MemsConnection) ResetECU() bool {
-	log.Info("resetting ecu")
-	return mems.updateECUState(MEMSResetECU)
-}
+	// populate the DataFrame structure for command 0x7d
+	byteReader := bytes.NewReader(d7d)
 
-// ClearFaults clears fault codes
-func (mems *MemsConnection) ClearFaults() bool {
-	log.Info("clearing ecu recorded faults ")
-	return mems.updateECUState(MEMSClearFaults)
-}
-
-// GetIACPosition returns the current IAC Position
-func (mems *MemsConnection) GetIACPosition() int {
-	var data []byte
-
-	log.Info("reading ecu iac position ")
-	data = mems.sendCommandAndWaitResponse(MEMSGetIACPosition)
-
-	if len(data) > 1 {
-		log.Infof("ecu iac position, received (%s)", fmt.Sprintf("%x", data))
-		return int(data[1])
+	if err = binary.Read(byteReader, binary.BigEndian, &df7d); err != nil {
+		log.Errorf("error reading dataframe x7d (%s)", err)
 	} else {
-		log.Warnf("ecu iac position invalid, received (%s)", fmt.Sprintf("%x", data))
-		return MEMSIACPositionDefault
+		log.Infof("dataframe x7d received (data: %X dataframe: %+v)", byteReader, df7d)
 	}
+
+	return df7d, err
+}
+
+func (ecu *ECUReaderInstance) createDataframe80(d80 []byte) (DataFrame80, error) {
+	var err error
+	var df80 DataFrame80
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Warnf("dataframe conversion panic occurred %s", err)
+		}
+	}()
+
+	// populate the DataFrame structure for command 0x80
+	byteReader := bytes.NewReader(d80)
+
+	if err = binary.Read(byteReader, binary.BigEndian, &df80); err != nil {
+		log.Errorf("error reading dataframe x80 (%s)", err)
+	} else {
+		log.Infof("dataframe x80 received (data: %X dataframe: %+v)", byteReader, df80)
+	}
+
+	return df80, err
+}
+
+func (ecu *ECUReaderInstance) readRawDataFrames() ([]byte, []byte) {
+	var err error
+	var dataframe7d, dataframe80 []byte
+
+	if dataframe80, err = ecu.ecuReader.SendAndReceive(MEMSReqData80); err != nil {
+		log.Errorf("error recieving dataframe 0x80 (%s)", err)
+	}
+	if dataframe7d, err = ecu.ecuReader.SendAndReceive(MEMSReqData7D); err != nil {
+		log.Errorf("error recieving dataframe 0x7D (%s)", err)
+	}
+
+	return dataframe80, dataframe7d
+}
+
+func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
+	if ecu.Datalogger != nil {
+		if reflect.TypeOf(ecu.ecuReader) == reflect.TypeOf(&MEMSReader{}) {
+			// write to a logfile if the ecu reader is a real (or virtual) ECU
+			go ecu.Datalogger.WriteMemsDataToFile(df)
+		}
+	}
+}
+
+//
+/////
+
+/*
+// ConnectAndInitialiseECU connect and initialise the ECU
+func (mems *ECUReaderInstance) ConnectAndInitialiseECU(serialPort string) {
+	log.Infof("connecting to %s and initialising ecu", serialPort)
+
+	if mems.isScenario(serialPort) {
+		log.Info("ecu connected and initialised in emulation mode")
+		// emulate ECU if scenario file is supplied
+		mems.Status.Emulated = true
+
+		// expand to full path
+		serialPort = fmt.Sprintf("%s/%s", GetLogFolder(), serialPort)
+		serialPort = filepath.FromSlash(serialPort)
+
+		log.Infof("loading scenario file %s", serialPort)
+
+		mems.Responder = NewResponder()
+	}
+
+	if !mems.Status.Connected {
+
+		mems.connect(serialPort)
+
+		if mems.Status.Connected {
+
+			mems.initialise()
+
+			if mems.Status.Initialised {
+				log.Info("ecu connected and initialised successfully")
+				// update status
+				mems.Status.IACPosition = mems.Diagnostics.Analysis.IACPosition
+
+				if !mems.Status.Emulated {
+					// create a data log file
+					mems.Datalogger = NewMemsDataLogger(GetLogFolder(), mems.Status.ECUID)
+				}
+			}
+		}
+	}
+}
+*/
+
+/*
+// sendCommandAndWaitResponse sends a command and returns the response
+func (mems *ECUReaderInstance) sendCommandAndWaitResponse(cmd []byte) []byte {
+	var response []byte
+
+	mems.writeSerial(cmd)
+	response = mems.readSerial()
+
+	mems.CommandResponse.Command = cmd
+	mems.CommandResponse.Response = response
+
+	return response
+}*/
+
+/*
+// GetIACPosition returns the current IAC Position
+func (mems *ECUReaderInstance) GetIACPosition() int {
+	data, _ := mems.getIACPosition()
+	return data
 }
 
 // GetECUSerial returns the current ECU Serial and ID
-func (mems *MemsConnection) GetECUSerial() string {
-	var data []byte
+func (mems *ECUReaderInstance) GetECUSerial() string {
+	data, _ := mems.getECUSerial()
+	return data
+}
+*/
 
-	log.Info("reading ecu serial")
-	data = mems.sendCommandAndWaitResponse(MEMSGetECUSerial)
-
-	if len(data) > 1 {
-		ecuSerial := string(data[1:9])
-		log.Infof("ecu serial, received (%s), serial (%s)", fmt.Sprintf("%x", data), ecuSerial)
-		return string(ecuSerial)
-	} else {
-		log.Warnf("ecu serial invalid, received (%s)", fmt.Sprintf("%x", data))
-		return mems.Status.ECUID
-	}
+func roundTo2DecimalPoints(x float32) float32 {
+	return float32(math.Round(float64(x)*100) / 100)
 }
 
-// AdjustShortTermFuelTrim increments or decrements by the number of steps
-func (mems *MemsConnection) AdjustShortTermFuelTrim(steps int) int {
-	return mems.applyAdjustment(MEMSSTFTIncrement, MEMSSTFTDecrement, MEMSFuelTrimDefault, steps)
-}
-
-// AdjustLongTermFuelTrim increments or decrements by the number of steps
-func (mems *MemsConnection) AdjustLongTermFuelTrim(steps int) int {
-	return mems.applyAdjustment(MEMSLTFTIncrement, MEMSLTFTDecrement, MEMSFuelTrimDefault, steps)
-}
-
-// AdjustIdleDecay increments or decrements by the number  of steps
-func (mems *MemsConnection) AdjustIdleDecay(steps int) int {
-	return mems.applyAdjustment(MEMSIdleDecayIncrement, MEMSIdleDecayDecrement, MEMSIdleDecayDefault, steps)
-}
-
-// AdjustIdleSpeed increments or decrements by the number of steps
-func (mems *MemsConnection) AdjustIdleSpeed(steps int) int {
-	return mems.applyAdjustment(MEMSIdleSpeedIncrement, MEMSIdleSpeedDecrement, MEMSIdleSpeedDefault, steps)
-}
-
-// AdjustIgnitionAdvanceOffset increments or decrements by the number of steps
-func (mems *MemsConnection) AdjustIgnitionAdvanceOffset(steps int) int {
-	return mems.applyAdjustment(MEMSIgnitionAdvanceOffsetIncrement, MEMSIgnitionAdvanceOffsetDecrement, MEMSIgnitionAdvanceOffsetDefault, steps)
-}
-
-// AdjustIACPosition increments or decrements by the number of steps
-func (mems *MemsConnection) AdjustIACPosition(steps int) int {
-	return mems.applyAdjustment(MEMSIACIncrement, MEMSIACDecrement, MEMSIACPositionDefault, steps)
-}
-
-// TestFuelPump test
-func (mems *MemsConnection) TestFuelPump(activate bool) bool {
-	return mems.activateActuator(MEMSFuelPumpOn, MEMSFuelPumpOff, activate)
-}
-
-// PTCRelay test
-func (mems *MemsConnection) TestPTCRelay(activate bool) bool {
-	return mems.activateActuator(MEMSPTCRelayOn, MEMSPTCRelayOff, activate)
-}
-
-// ACRelay test
-func (mems *MemsConnection) TestACRelay(activate bool) bool {
-	return mems.activateActuator(MEMSACRelayOn, MEMSACRelayOff, activate)
-}
-
-// TestPurgeValve test
-func (mems *MemsConnection) TestPurgeValve(activate bool) bool {
-	return mems.activateActuator(MEMSPurgeValveOn, MEMSPurgeValveOff, activate)
-}
-
-// TestO2Heater test
-func (mems *MemsConnection) TestO2Heater(activate bool) bool {
-	return mems.activateActuator(MEMSO2HeaterOn, MEMSO2HeaterOff, activate)
-}
-
-// TestBoostValve test
-func (mems *MemsConnection) TestBoostValve(activate bool) bool {
-	return mems.activateActuator(MEMSBoostValveOn, MEMSBoostValveOff, activate)
-}
-
-// TestFan1 test
-func (mems *MemsConnection) TestFan1(activate bool) bool {
-	return mems.activateActuator(MEMSFan1On, MEMSFan1Off, activate)
-}
-
-// TestFan2 test
-func (mems *MemsConnection) TestFan2(activate bool) bool {
-	return mems.activateActuator(MEMSFan2On, MEMSFan2Off, activate)
-}
-
-// TestInjectors test, the activate state is ignored on this test
-func (mems *MemsConnection) TestInjectors(activate bool) bool {
-	return mems.activateActuator(MEMSTestInjectors, MEMSTestInjectors, activate)
-}
-
-// TestCoil test, the activate state is ignored on this test
-func (mems *MemsConnection) TestCoil(activate bool) bool {
-	return mems.activateActuator(MEMSFireCoil, MEMSFireCoil, activate)
-}
-
-//
-// Private functions
-//
-
-// Increment or Decrement the adjustment by n steps
-// Returns the final value of the adjustment
-func (mems *MemsConnection) applyAdjustment(incrementCommand []byte, decrementCommand []byte, defaultValue int, steps int) int {
-	var data []byte
-	var cmd []byte
-
-	// if the steps are positive then increment the adjustment
-	// by n steps.
-	// ignore all but the last value reading
-	if steps > 0 {
-		cmd = incrementCommand
-		log.Infof("incrementing adjustable command %s by %d steps", fmt.Sprintf("%x", data), steps)
-		for step := 0; step < steps; step++ {
-			data = mems.sendCommandAndWaitResponse(cmd)
-		}
-	}
-
-	// if the steps are negative then decrement the adjustment
-	// by n steps.
-	// ignore all but the last value reading
-	if steps < 0 {
-		cmd = decrementCommand
-		log.Infof("decrementing adjustable command %s by %d steps", fmt.Sprintf("%x", data), steps)
-		for step := steps; step < 0; step++ {
-			data = mems.sendCommandAndWaitResponse(cmd)
-		}
-	}
-
-	// ensure we have at least 1 byte returned
-	// before returning the value
-	log.WithFields(log.Fields{"command": cmd, "steps": steps, "data": fmt.Sprintf("%x", data)}).Info("adjustment modified")
-
-	if data != nil {
-		if len(data) > 1 && len(cmd) > 0 {
-			if cmd[0] == data[0] {
-				return int(data[1])
-			}
-		}
-	}
-
-	// the data returned was either invalid or the command echo (byte 0) in the response
-	// didn't match the command sent.
-	// return the default value for the adjuster
-	return defaultValue
-}
-
-// Switches on or off the actuator
-// Returns the success of the operation
-func (mems *MemsConnection) activateActuator(activateCommand []byte, deactivateCommand []byte, activate bool) bool {
-	var cmd []byte
-	var data []byte
-
-	if activate {
-		cmd = activateCommand
-	} else {
-		cmd = deactivateCommand
-	}
-
-	log.WithFields(log.Fields{"command": cmd, "activate": activate}).Info("activating actuator")
-
-	data = mems.sendCommandAndWaitResponse(cmd)
-
-	if data != nil {
-		if len(data) > 0 {
-			if activate {
-				log.Info("actuator activated")
-			} else {
-				log.Info("actuator deactivated")
-			}
-			return data[0] == cmd[0]
-		}
-	}
-
-	return false
-}
-
-// Updates ECU state, is used to clears the state for the reset commands
-// or emitting a state keep-alive heartbeat
-// Returns success of the operation
-func (mems *MemsConnection) updateECUState(command []byte) bool {
-	data := mems.sendCommandAndWaitResponse(command)
-
-	if data != nil {
-		log.WithFields(log.Fields{"command": command, "data": fmt.Sprintf("%x", data), "len": len(data)}).Info("updated ECU state (clear, reset or heartbeat)")
-
-		if len(data) > 0 {
-			return data[0] == command[0]
-		}
-	}
-
-	return false
-}
-
-// connect to MEMS via serial port
-func (mems *MemsConnection) connect(port string) {
+/*
+// connect to MEMS via serial serialPort
+func (mems *ECUReaderInstance) connect(port string) {
 	var err error
 	var s *serial.Port
 
@@ -499,25 +330,25 @@ func (mems *MemsConnection) connect(port string) {
 		// connect to the ecu, timeout if we don't get data after a couple of seconds
 		c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
 
-		log.Infof("attempting to open serial port %s", port)
+		log.Infof("attempting to open serial serialPort %s", port)
 		s, err = serial.OpenPort(c)
 	}
 
 	if err != nil {
-		log.Errorf("error opening serial port (%s) status : (%+v)", err, mems.Status)
+		log.Errorf("error opening serial serialPort (%s) status : (%+v)", err, mems.Status)
 		mems.Status.Connected = false
 		mems.Status.Initialised = false
 	} else {
 		mems.SerialPort = s
 		mems.Status.Connected = true
 		mems.Status.Initialised = false
-		log.Errorf("opened serial port %s (%+v)", port, mems.Status)
+		log.Errorf("opened serial serialPort %s (%+v)", port, mems.Status)
 	}
 }
 
-// check if the port is a CSV file, if so then a scenario emulation
+// check if the serialPort is a CSV file, if so then a scenario emulation
 // has been requested rather than a real serial connection
-func (mems *MemsConnection) isScenario(port string) bool {
+func (mems *ECUReaderInstance) isScenario(port string) bool {
 	// return true if the URL starts file://
 	if strings.HasPrefix(port, "file://") {
 		return true
@@ -527,7 +358,7 @@ func (mems *MemsConnection) isScenario(port string) bool {
 }
 
 // checks the first byte of the response against the sent command
-func (mems *MemsConnection) isCommandEcho() bool {
+func (mems *ECUReaderInstance) isCommandEcho() bool {
 	if mems.CommandResponse.Response != nil {
 		if len(mems.CommandResponse.Response) > 0 {
 			return mems.CommandResponse.Command[0] == mems.CommandResponse.Response[0]
@@ -536,6 +367,7 @@ func (mems *MemsConnection) isCommandEcho() bool {
 
 	return false
 }
+*/
 
 // initialises the connection to the ECU
 // The initialisation sequence is as follows:
@@ -547,7 +379,8 @@ func (mems *MemsConnection) isCommandEcho() bool {
 // 5. Send request ECU ID command D0 (MEMS_InitECUID)
 // 6. Recieve response D0 XX XX XX XX
 //
-func (mems *MemsConnection) initialise() {
+/*
+func (mems *ECUReaderInstance) initialise() {
 	// assume not initialised
 	mems.Status.Initialised = false
 
@@ -563,7 +396,7 @@ func (mems *MemsConnection) initialise() {
 
 			// if we get the command echoed back we can assume
 			// a good connection and proceed. This is to work around the issue
-			// in Windows where the port always connects even if it's not available.
+			// in Windows where the serialPort always connects even if it's not available.
 			if response[0] == MEMSInitCommandA[0] {
 				mems.writeSerial(MEMSInitCommandB)
 				_ = mems.readSerial()
@@ -597,10 +430,11 @@ func (mems *MemsConnection) initialise() {
 
 	log.WithFields(log.Fields{"connected": mems.Status.Connected, "initialised": mems.Status.Initialised}).Info("connected and initialised ECU")
 }
-
+*/
+/*
 // readSerial read from MEMS
 // read 1 byte at a time until we have all the expected bytes
-func (mems *MemsConnection) readSerial() []byte {
+func (mems *ECUReaderInstance) readSerial() []byte {
 	var n int
 	var e error
 
@@ -625,7 +459,7 @@ func (mems *MemsConnection) readSerial() []byte {
 					n, e = mems.SerialPort.Read(b)
 
 					if n == 0 {
-						log.Errorf("0 bytes received, serial port read error, timeout? (%s)", e)
+						log.Errorf("0 bytes received, serial serialPort read error, timeout? (%s)", e)
 						// drop out of loop, send back a 0x00 byte array response
 						// this prevents the loop getting blocked on a read error
 						count = size
@@ -656,7 +490,7 @@ func (mems *MemsConnection) readSerial() []byte {
 }
 
 // writeSerial write to MEMS
-func (mems *MemsConnection) writeSerial(data []byte) {
+func (mems *ECUReaderInstance) writeSerial(data []byte) {
 	if mems.Status.Emulated {
 		log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data)}).Info("data stored for emulation")
 		mems.CommandResponse.Command = data
@@ -670,44 +504,23 @@ func (mems *MemsConnection) writeSerial(data []byte) {
 				n, e := mems.SerialPort.Write(data)
 
 				if e != nil {
-					log.WithFields(log.Fields{"error": e}).Error("error sending data to serial port")
+					log.WithFields(log.Fields{"error": e}).Error("error sending data to serial serialPort")
 				}
 
 				if n > 0 {
-					log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data)}).Info("data to serial port")
+					log.WithFields(log.Fields{"data": fmt.Sprintf("%x", data)}).Info("data to serial serialPort")
 				}
 			}
 		}
 	}
 }
+*/
 
-func roundTo2DecimalPoints(x float32) float32 {
-	return float32(math.Round(float64(x)*100) / 100)
-}
-
-// readRawDataFrames reads dataframe 80 and then dataframe 7d as raw byte arrays
-func (mems *MemsConnection) readRawDataFrames() ([]byte, []byte) {
-	mems.writeSerial(MEMSReqData80)
-	dataframe80 := mems.readSerial()
-
-	//if e != nil {
-	//	LogW.Printf("%s Dataframe80 command send/receive fault %v", ECUResponseTrace, e)
-	//}
-
-	mems.writeSerial(MEMSReqData7D)
-	dataframe7d := mems.readSerial()
-
-	//if e != nil {
-	//	LogW.Printf("%s Dataframe7d command send/receive fault %v", ECUResponseTrace, e)
-	//}
-
-	return dataframe80, dataframe7d
-}
-
+/*
 // getResponseSize returns the expected number of bytes for a given command
 // The 'response' variable contains the formats for each command response pattern
 // by default the response size is 2 bytes unless the command has a special format.
-func (mems *MemsConnection) getResponseSize(command []byte) int {
+func (mems *ECUReaderInstance) getResponseSize(command []byte) int {
 	size := 2
 
 	c := hex.EncodeToString(command)
@@ -808,3 +621,4 @@ func init() {
 	// generic response, expect command and single byte response
 	responseMap["00"] = []byte{0x00, 0x00}
 }
+*/

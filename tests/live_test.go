@@ -14,7 +14,7 @@ func TestLiveConnectAndInitialise(t *testing.T) {
 	logfolder := "logs"
 	port := "/dev/cu.usbserial-FT94CQQS"
 
-	mems := rosco.NewMemsConnection(logfolder)
+	mems := rosco.NewECUReaderInstance(logfolder)
 	mems.ConnectAndInitialiseECU(port)
 
 	then.AssertThat(t, mems.Status.Connected, is.True())

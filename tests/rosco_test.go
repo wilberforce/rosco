@@ -1,5 +1,6 @@
 package tests
 
+/*
 import (
 	"github.com/andrewdjackson/rosco"
 	"github.com/corbym/gocrest/is"
@@ -229,3 +230,4 @@ func TestActuators(t *testing.T) {
 	value = mems.TestFan2(false)
 	then.AssertThat(t, value, is.True())
 }
+*/

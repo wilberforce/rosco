@@ -2,14 +2,7 @@
 
 package tests
 
-import (
-	"github.com/andrewdjackson/rosco"
-	"github.com/corbym/gocrest/is"
-	"github.com/corbym/gocrest/then"
-	"testing"
-	"time"
-)
-
+/*
 func TestGetScenarios(t *testing.T) {
 	scenarios, err := rosco.GetScenarios()
 
@@ -217,3 +210,4 @@ func BenchmarkScenario(b *testing.B) {
 
 	mems.Diagnostics.Analyse()
 }
+*/

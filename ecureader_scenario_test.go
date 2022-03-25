@@ -7,9 +7,9 @@ import (
 )
 
 func Test_scenarioConnectAndInitialise(t *testing.T) {
-	r := NewScenarioReader()
+	r := NewScenarioReader("test.csv")
 
-	then.AssertThat(t, r, is.True())
+	then.AssertThat(t, r, is.Not(is.Nil()))
 }
 
 func Test_scenario_ConnectAndInitialise(t *testing.T) {}

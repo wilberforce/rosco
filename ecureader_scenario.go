@@ -1,37 +1,44 @@
 package rosco
 
+import (
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"path/filepath"
+)
+
 type ScenarioReader struct {
+	connected    bool
 	scenarioFile string
 }
 
-func NewScenarioReader() *ScenarioReader {
+func NewScenarioReader(filename string) *ScenarioReader {
+	log.Infof("created scenario playback ecu reader")
+
 	r := &ScenarioReader{}
+
+	// expand to full path
+	filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
+	filename = filepath.FromSlash(filename)
+
+	r.scenarioFile = filename
+	log.Infof("loading scenario file %s", r.scenarioFile)
+
 	return r
 }
 
-func (r *ScenarioReader) Open(connection string) error {
+func (r *ScenarioReader) Connect() (bool, error) {
 	var err error
-	return err
+	return r.connected, err
 }
 
-func (r *ScenarioReader) Read(b []byte) (int, error) {
+func (r *ScenarioReader) SendAndReceive(command []byte) ([]byte, error) {
 	var err error
-	var n int
+	var bytes []byte
 
-	return n, err
+	return bytes, err
 }
 
-func (r *ScenarioReader) Write(b []byte) (int, error) {
-	var err error
-	var n int
-
-	return n, err
-}
-
-func (r *ScenarioReader) Flush() {
-}
-
-func (r *ScenarioReader) Close() error {
+func (r *ScenarioReader) Disconnect() error {
 	var err error
 	return err
 }
