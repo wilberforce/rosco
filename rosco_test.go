@@ -3,6 +3,7 @@ package rosco
 import (
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
+	"reflect"
 	"testing"
 )
 
@@ -12,7 +13,7 @@ func Test_rosco_ConnectAndInitialiseECU(t *testing.T) {
 
 	rosco_ConnectAndInitialiseECU(t, loopbackPort)
 
-	//rosco_ConnectAndInitialiseECU(t, scenarioPort)
+	rosco_ConnectAndInitialiseECU(t, scenarioPort)
 
 	r := NewECUReaderInstance()
 	connected, err := r.ConnectAndInitialiseECU(invalidPort)
@@ -29,6 +30,10 @@ func rosco_ConnectAndInitialiseECU(t *testing.T, port string) {
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, r.Status.Connected, is.True())
 	then.AssertThat(t, connected, is.True())
+
+	if reflect.TypeOf(r.ecuReader) == reflect.TypeOf(&ScenarioReader{}) {
+		then.AssertThat(t, r.ecuReader.(*ScenarioReader).Responder, is.Not(is.Nil()))
+	}
 
 	_ = r.Disconnect()
 }

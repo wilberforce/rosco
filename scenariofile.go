@@ -28,7 +28,7 @@ func NewScenarioFile(filepath string) *ScenarioFile {
 }
 
 func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
-	// use the responder to load the data
+	// use the Responder to load the data
 	responder := NewResponder()
 	filename := getScenarioPath(id)
 	err := responder.LoadScenario(filename)

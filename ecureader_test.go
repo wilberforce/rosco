@@ -10,7 +10,7 @@ import (
 const (
 	invalidPort  = ""
 	loopbackPort = "loopback"
-	scenarioPort = "scenario.csv"
+	scenarioPort = "testdata/nofaults.csv"
 )
 
 func Test_ecureader_NewECUReader(t *testing.T) {

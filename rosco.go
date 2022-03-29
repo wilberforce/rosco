@@ -16,6 +16,7 @@ type ECUReaderInstance struct {
 	Status      *ECUStatus
 	Diagnostics *DataframeAnalysis
 	Datalogger  *MemsDataLogger
+	Responder   *ScenarioResponder
 }
 
 /*
@@ -44,6 +45,10 @@ func (ecu *ECUReaderInstance) ConnectAndInitialiseECU(port string) (bool, error)
 	var connected bool
 
 	ecu.ecuReader = NewECUReader(port)
+
+	if reflect.TypeOf(ecu.ecuReader) == reflect.TypeOf(&ScenarioReader{}) {
+		ecu.Responder = ecu.ecuReader.(*ScenarioReader).Responder
+	}
 
 	if connected, err = ecu.connectToECU(); err == nil {
 		if connected {

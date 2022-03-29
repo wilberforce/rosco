@@ -133,7 +133,7 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 }
 
 // Save the scenario in binary format
-//func (responder *ScenarioResponder) SaveScenario(filepath string) error {
+//func (Responder *ScenarioResponder) SaveScenario(filepath string) error {
 //
 //}
 

@@ -8,7 +8,7 @@ import (
 type ScenarioReader struct {
 	connected    bool
 	scenarioFile string
-	responder    *ScenarioResponder
+	Responder    *ScenarioResponder
 }
 
 func NewScenarioReader(filename string) *ScenarioReader {
@@ -31,7 +31,7 @@ func (r *ScenarioReader) Connect() (bool, error) {
 
 	log.Infof("connecting to scenario playback file %s", r.scenarioFile)
 
-	r.responder = NewResponder()
+	r.Responder = NewResponder()
 
 	if err = r.loadScenario(); err == nil {
 		r.connected = true
@@ -44,7 +44,7 @@ func (r *ScenarioReader) SendAndReceive(command []byte) ([]byte, error) {
 	var err error
 	var data []byte
 
-	data = r.responder.GetECUResponse(command)
+	data = r.Responder.GetECUResponse(command)
 	log.Infof("read (%X) from scenario playback file", data)
 
 	return data, err
@@ -64,5 +64,5 @@ func (r *ScenarioReader) Disconnect() error {
 
 func (r *ScenarioReader) loadScenario() error {
 	log.Infof("loading scenario playback file %s", r.scenarioFile)
-	return r.responder.LoadScenario(r.scenarioFile)
+	return r.Responder.LoadScenario(r.scenarioFile)
 }
