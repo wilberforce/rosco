@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"math"
 	"strings"
 )
 
@@ -20,9 +21,15 @@ type ECUReader interface {
 	Disconnect() (err error)
 }
 
+// global response map
+var responseMap = make(map[string][]byte)
+
 // ECU Reader factory
 func NewECUReader(connection string) ECUReader {
 	var r ECUReader
+
+	// prepare the response map for synthetic ECUs
+	responseMap = createResponseMap()
 
 	// determine the type of reader from the connection string
 	isFile := strings.HasSuffix(connection, ".csv") || strings.HasSuffix(connection, ".fcr")
@@ -51,7 +58,6 @@ func getResponseSize(command []byte) (int, error) {
 	var err error
 	var size int
 
-	responseMap := createResponseMap()
 	c := hex.EncodeToString(command)
 	c = strings.ToUpper(c)
 	response := responseMap[c]
@@ -63,10 +69,31 @@ func getResponseSize(command []byte) (int, error) {
 		log.Warnf("%s", err)
 	} else {
 		size = len(response)
-		log.Infof("mapped command %s to %s, expecting a response of %d bytes", c, fmt.Sprintf("%X", response), size)
+		log.Infof("mapped command %s to %X, expecting a response of %d bytes", c, response, size)
 	}
 
 	return size, err
+}
+
+// if we're responding to a command that isn't a dataframe request
+// then generate the correct response
+func generateECUResponse(command string) []byte {
+	if len(responseMap) == 0 {
+		// create the response map, if it's not already been initialised
+		responseMap = createResponseMap()
+	}
+
+	command = strings.ToUpper(command)
+	response := responseMap[command]
+
+	if response == nil {
+		response = responseMap["00"]
+		copy(response[0:], command)
+	}
+
+	log.Infof("generated a response %X for command %X", response, command)
+
+	return response
 }
 
 func createResponseMap() map[string][]byte {
@@ -152,4 +179,8 @@ func createResponseMap() map[string][]byte {
 	responseMap["00"] = []byte{0x00, 0x00}
 
 	return responseMap
+}
+
+func roundTo2DecimalPoints(x float32) float32 {
+	return float32(math.Round(float64(x)*100) / 100)
 }

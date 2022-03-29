@@ -43,7 +43,7 @@ func Test_rosco_getIACPosition(t *testing.T) {
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, connected, is.True())
 
-	response, err := r.getIACPosition()
+	response, err := r.GetIACPosition()
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, response, is.EqualTo(128))
 }

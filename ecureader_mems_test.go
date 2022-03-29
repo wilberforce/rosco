@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+//
+// To Run these tests you need Memsulator running!
+//
+
 func getVirtualPort() string {
 	homefolder, _ := homedir.Dir()
 	return filepath.ToSlash(homefolder + "/ttyecu")

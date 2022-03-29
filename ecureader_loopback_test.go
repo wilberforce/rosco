@@ -11,7 +11,6 @@ func Test_loopback_Connect(t *testing.T) {
 	connected, err := r.Connect()
 
 	then.AssertThat(t, err, is.Nil())
-	then.AssertThat(t, len(r.responseMap), is.GreaterThan(0))
 	then.AssertThat(t, r.connected, is.True())
 	then.AssertThat(t, connected, is.True())
 }

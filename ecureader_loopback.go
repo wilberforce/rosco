@@ -8,17 +8,16 @@ import (
 )
 
 type LoopbackReader struct {
-	connected   bool
-	responseMap map[string][]byte
+	connected bool
 }
 
 func NewLoopbackReader() *LoopbackReader {
 	log.Infof("created loopback ecu reader")
 
-	r := &LoopbackReader{}
-	r.responseMap = createResponseMap()
+	// initialise the responseMap
+	responseMap = createResponseMap()
 
-	return r
+	return &LoopbackReader{}
 }
 
 func (r *LoopbackReader) Connect() (bool, error) {

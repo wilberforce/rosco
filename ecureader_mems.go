@@ -10,6 +10,8 @@ import (
 type MEMSReader struct {
 	connected  bool
 	port       string
+	ecuId      string
+	ecuSerial  string
 	serialPort *serial.Port
 }
 

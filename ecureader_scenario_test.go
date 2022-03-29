@@ -6,17 +6,63 @@ import (
 	"testing"
 )
 
-func Test_scenarioConnectAndInitialise(t *testing.T) {
-	r := NewScenarioReader("test.csv")
+func Test_scenarioReader_Connect(t *testing.T) {
+	var err error
+	var connected bool
 
-	then.AssertThat(t, r, is.Not(is.Nil()))
+	r := NewScenarioReader("testdata/nofaults.csv")
+	connected, err = r.Connect()
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, r.connected, is.True())
+	then.AssertThat(t, connected, is.True())
 }
 
-func Test_scenario_ConnectAndInitialise(t *testing.T) {}
-func Test_scenario_Disconnect(t *testing.T)           {}
-func Test_scenario_GetStatus(t *testing.T)            {}
-func Test_scenario_GetDataframes(t *testing.T)        {}
-func Test_scenario_Reset(t *testing.T)                {}
-func Test_scenario_ClearFaults(t *testing.T)          {}
-func Test_scenario_Adjust(t *testing.T)               {}
-func Test_scenario_Actuate(t *testing.T)              {}
+func Test_scenarioReader_SendAndReceive(t *testing.T) {
+	var err error
+	var connected bool
+	var response []byte
+
+	r := NewScenarioReader("testdata/nofaults.csv")
+	connected, err = r.Connect()
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, connected, is.True())
+
+	// test dataframes
+	response, err = r.SendAndReceive([]byte{0x7D})
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, len(response), is.EqualTo(33))
+	then.AssertThat(t, response[0:1], is.EqualTo([]byte{0x7d}))
+
+	response, err = r.SendAndReceive([]byte{0x80})
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, len(response), is.EqualTo(29))
+	then.AssertThat(t, response[0:1], is.EqualTo([]byte{0x80}))
+
+	// test general command
+	response, err = r.SendAndReceive([]byte{0x75})
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, len(response), is.GreaterThanOrEqualTo(1))
+	then.AssertThat(t, response[0:1], is.EqualTo([]byte{0x75}))
+}
+
+func Test_scenarioReader_Disconnect(t *testing.T) {
+	var err error
+	var connected bool
+
+	r := NewScenarioReader("testdata/nofaults.csv")
+	connected, err = r.Connect()
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, r.connected, is.True())
+	then.AssertThat(t, connected, is.True())
+
+	err = r.Disconnect()
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, r.connected, is.False())
+}
+
+func Test_scenarioReader_loadScenario(t *testing.T) {
+
+}

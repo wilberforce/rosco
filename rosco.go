@@ -51,7 +51,7 @@ func (ecu *ECUReaderInstance) ConnectAndInitialiseECU(port string) (bool, error)
 			// get the ecu id, serial number and iac position
 			ecu.Status.ECUID, err = ecu.getECUID()
 			ecu.Status.ECUSerial, err = ecu.getECUSerial()
-			ecu.Status.IACPosition, err = ecu.getIACPosition()
+			ecu.Status.IACPosition, err = ecu.GetIACPosition()
 		}
 	}
 
@@ -71,13 +71,6 @@ func (ecu *ECUReaderInstance) Disconnect() error {
 
 	return err
 }
-
-func (ecu *ECUReaderInstance) connectToECU() (bool, error) {
-	return ecu.ecuReader.Connect()
-}
-
-/////
-// NOT SURE IF WE REFACTOR THESE OUT YET
 
 // ResetDiagnostics clears and resets the diagnostic data
 func (ecu *ECUReaderInstance) ResetDiagnostics() {
@@ -113,6 +106,10 @@ func (ecu *ECUReaderInstance) GetDataframes() MemsData {
 
 	return df
 
+}
+
+func (ecu *ECUReaderInstance) connectToECU() (bool, error) {
+	return ecu.ecuReader.Connect()
 }
 
 func (ecu *ECUReaderInstance) createMemsDataframe(df80 DataFrame80, df7d DataFrame7d) MemsData {
@@ -237,9 +234,6 @@ func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
 	}
 }
 
-//
-/////
-
 /*
 // ConnectAndInitialiseECU connect and initialise the ECU
 func (mems *ECUReaderInstance) ConnectAndInitialiseECU(serialPort string) {
@@ -280,9 +274,7 @@ func (mems *ECUReaderInstance) ConnectAndInitialiseECU(serialPort string) {
 		}
 	}
 }
-*/
 
-/*
 // sendCommandAndWaitResponse sends a command and returns the response
 func (mems *ECUReaderInstance) sendCommandAndWaitResponse(cmd []byte) []byte {
 	var response []byte
@@ -294,12 +286,11 @@ func (mems *ECUReaderInstance) sendCommandAndWaitResponse(cmd []byte) []byte {
 	mems.CommandResponse.Response = response
 
 	return response
-}*/
+}
 
-/*
 // GetIACPosition returns the current IAC Position
 func (mems *ECUReaderInstance) GetIACPosition() int {
-	data, _ := mems.getIACPosition()
+	data, _ := mems.GetIACPosition()
 	return data
 }
 
@@ -308,13 +299,7 @@ func (mems *ECUReaderInstance) GetECUSerial() string {
 	data, _ := mems.getECUSerial()
 	return data
 }
-*/
 
-func roundTo2DecimalPoints(x float32) float32 {
-	return float32(math.Round(float64(x)*100) / 100)
-}
-
-/*
 // connect to MEMS via serial serialPort
 func (mems *ECUReaderInstance) connect(port string) {
 	var err error
@@ -367,7 +352,6 @@ func (mems *ECUReaderInstance) isCommandEcho() bool {
 
 	return false
 }
-*/
 
 // initialises the connection to the ECU
 // The initialisation sequence is as follows:
@@ -379,7 +363,6 @@ func (mems *ECUReaderInstance) isCommandEcho() bool {
 // 5. Send request ECU ID command D0 (MEMS_InitECUID)
 // 6. Recieve response D0 XX XX XX XX
 //
-/*
 func (mems *ECUReaderInstance) initialise() {
 	// assume not initialised
 	mems.Status.Initialised = false
@@ -430,8 +413,7 @@ func (mems *ECUReaderInstance) initialise() {
 
 	log.WithFields(log.Fields{"connected": mems.Status.Connected, "initialised": mems.Status.Initialised}).Info("connected and initialised ECU")
 }
-*/
-/*
+
 // readSerial read from MEMS
 // read 1 byte at a time until we have all the expected bytes
 func (mems *ECUReaderInstance) readSerial() []byte {
@@ -514,9 +496,7 @@ func (mems *ECUReaderInstance) writeSerial(data []byte) {
 		}
 	}
 }
-*/
 
-/*
 // getResponseSize returns the expected number of bytes for a given command
 // The 'response' variable contains the formats for each command response pattern
 // by default the response size is 2 bytes unless the command has a special format.

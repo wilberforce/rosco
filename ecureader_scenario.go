@@ -1,7 +1,6 @@
 package rosco
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"path/filepath"
 )
@@ -9,36 +8,61 @@ import (
 type ScenarioReader struct {
 	connected    bool
 	scenarioFile string
+	responder    *ScenarioResponder
 }
 
 func NewScenarioReader(filename string) *ScenarioReader {
 	log.Infof("created scenario playback ecu reader")
-
 	r := &ScenarioReader{}
 
-	// expand to full path
-	filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
-	filename = filepath.FromSlash(filename)
+	// initialise the responseMap
+	responseMap = createResponseMap()
 
+	// expand to full path
+	//filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
+	filename = filepath.FromSlash(filename)
 	r.scenarioFile = filename
-	log.Infof("loading scenario file %s", r.scenarioFile)
 
 	return r
 }
 
 func (r *ScenarioReader) Connect() (bool, error) {
 	var err error
+
+	log.Infof("connecting to scenario playback file %s", r.scenarioFile)
+
+	r.responder = NewResponder()
+
+	if err = r.loadScenario(); err == nil {
+		r.connected = true
+	}
+
 	return r.connected, err
 }
 
 func (r *ScenarioReader) SendAndReceive(command []byte) ([]byte, error) {
 	var err error
-	var bytes []byte
+	var data []byte
 
-	return bytes, err
+	data = r.responder.GetECUResponse(command)
+	log.Infof("read (%X) from scenario playback file", data)
+
+	return data, err
 }
 
 func (r *ScenarioReader) Disconnect() error {
 	var err error
+
+	log.Infof("disconnected scenario playback file %s", r.scenarioFile)
+
+	// disconnect
+	r.connected = false
+	r.scenarioFile = ""
+
 	return err
+}
+
+func (r *ScenarioReader) loadScenario() error {
+	log.Infof("loading scenario playback file %s", r.scenarioFile)
+	return r.responder.LoadScenario(r.scenarioFile)
 }

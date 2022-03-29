@@ -1,7 +1,5 @@
 package rosco
 
-var responseMap = make(map[string][]byte)
-
 // MemsData is the mems information computed from dataframes 0x80 and 0x7d
 type (
 	MemsData struct {

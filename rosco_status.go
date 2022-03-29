@@ -88,7 +88,7 @@ func (ecu *ECUReaderInstance) getECUSerial() (string, error) {
 	return ecuSerial, err
 }
 
-func (ecu *ECUReaderInstance) getIACPosition() (int, error) {
+func (ecu *ECUReaderInstance) GetIACPosition() (int, error) {
 	var data []byte
 	var err error
 

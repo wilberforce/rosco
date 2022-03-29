@@ -3,7 +3,6 @@ package rosco
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
@@ -143,7 +142,7 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 func (responder *ScenarioResponder) MovePositionToLocation(timelocation time.Time) {
 	for i, r := range responder.Playbook.Responses {
 		if timelocation.Before(r.Timestamp) {
-			log.Printf("moving position from %v to %v", responder.Playbook.Position, i)
+			log.Infof("moving position from %v to %v", responder.Playbook.Position, i)
 			// set the position to the location after the specified time location
 			responder.Playbook.Position = i - 1
 			// exit loop
@@ -158,7 +157,7 @@ func (responder *ScenarioResponder) MoveToPosition(position int) {
 	}
 
 	if position < responder.Playbook.Count {
-		log.Printf("moving position from %v to %v", responder.Playbook.Position, position)
+		log.Infof("moving position from %v to %v", responder.Playbook.Position, position)
 		// set the position to the specified location
 		responder.Playbook.Position = position
 	}
@@ -236,7 +235,7 @@ func (responder *ScenarioResponder) GetECUResponse(cmd []byte) []byte {
 	} else {
 		// if a command request is made whilst we're replaying
 		// generate a relevant response from the response map
-		data = responder.generateECUResponse(command)
+		data = generateECUResponse(command)
 	}
 
 	return data
@@ -253,20 +252,4 @@ func (responder *ScenarioResponder) convertHexStringToByteArray(response string)
 	data, _ := hex.DecodeString(response)
 
 	return data
-}
-
-// if we're responding to a command that isn't a dataframe request
-// then generate the correct response
-func (responder *ScenarioResponder) generateECUResponse(command string) []byte {
-	command = strings.ToUpper(command)
-
-	r := responseMap[command]
-
-	if r == nil {
-		r = responseMap["00"]
-		copy(r[0:], command)
-	}
-
-	log.WithFields(log.Fields{"response": fmt.Sprintf("%x", r), "command": command}).Info("generated response for command")
-	return r
 }
