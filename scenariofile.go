@@ -43,14 +43,13 @@ func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
 }
 
 func (scenario *ScenarioFile) Write() error {
-	json, err := json.MarshalIndent(scenario, "", " ")
+	var err error
+	var data []byte
 
-	if err != nil {
+	if data, err = json.MarshalIndent(scenario, "", " "); err != nil {
 		log.Errorf("Error generating scenario description (%s)", err)
 	} else {
-		err = ioutil.WriteFile(scenario.filePath, json, 0644)
-
-		if err != nil {
+		if err = ioutil.WriteFile(scenario.filePath, data, 0644); err != nil {
 			log.Errorf("Error writing scenario file %s (%s)", scenario.filePath, err)
 		}
 	}
@@ -59,19 +58,19 @@ func (scenario *ScenarioFile) Write() error {
 }
 
 func (scenario *ScenarioFile) Read() error {
-	file, err := ioutil.ReadFile(scenario.filePath)
+	var err error
+	var data []byte
 
-	if err != nil {
+	if data, err = ioutil.ReadFile(scenario.filePath); err != nil {
 		log.Errorf("Error reading scenario file %s (%s)", scenario.filePath, err)
-	}
-
-	err = json.Unmarshal([]byte(file), &scenario)
-
-	if err != nil {
-		log.Errorf("Error reading scenario file %s (%s)", scenario.filePath, err)
+		return err
+	} else {
+		if err = json.Unmarshal([]byte(data), &scenario); err != nil {
+			log.Errorf("Error reading scenario file %s (%s)", scenario.filePath, err)
+			return err
+		}
 	}
 
 	log.Infof("scenario file: %+v", scenario)
-
 	return err
 }
