@@ -21,22 +21,27 @@ type ScenarioFile struct {
 
 func NewScenarioFile(filepath string) *ScenarioFile {
 	scenario := &ScenarioFile{}
-	scenario.filePath = filepath
+	scenario.filePath = getScenarioPath(filepath)
 	scenario.Date = time.Now()
 
 	return scenario
 }
 
 func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
+	var err error
+
 	// use the Responder to load the data
 	responder := NewResponder()
 	filename := getScenarioPath(id)
-	err := responder.LoadScenario(filename)
 
-	if err == nil {
+	if err = responder.LoadScenario(filename); err == nil {
 		scenario.Name = id
 		scenario.Count = responder.Playbook.Count
 		scenario.RawData = responder.RawData
+
+		log.Infof("converted %s to %s", filename, scenario.filePath)
+	} else {
+		log.Errorf("error converting %s to %s", filename, scenario.filePath)
 	}
 
 	return err

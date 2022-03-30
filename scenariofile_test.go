@@ -7,8 +7,8 @@ import (
 )
 
 func Test_scenario_NewScenarioFile(t *testing.T) {
-	s := NewScenarioFile("scenario.csv")
-	then.AssertThat(t, s.filePath, is.EqualTo("scenario.csv"))
+	s := NewScenarioFile("testdata/nofaults.csv")
+	then.AssertThat(t, s.filePath, is.EqualTo("testdata/nofaults.csv"))
 }
 
 func Test_scenario_ConvertLogToScenario(t *testing.T) {
