@@ -2,7 +2,6 @@ package rosco
 
 import (
 	log "github.com/sirupsen/logrus"
-	"path/filepath"
 )
 
 type ScenarioReader struct {
@@ -18,10 +17,8 @@ func NewScenarioReader(filename string) *ScenarioReader {
 	// initialise the responseMap
 	responseMap = createResponseMap()
 
-	// expand to full path
-	//filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
-	filename = filepath.FromSlash(filename)
-	r.scenarioFile = filename
+	// expand to full path, if the path is not included in the filename
+	r.scenarioFile = GetFullScenarioFilePath(filename)
 
 	return r
 }

@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -17,9 +16,7 @@ func getScenarioPath(file string) string {
 	if file == "" {
 		return GetLogFolder()
 	}
-
-	filename := fmt.Sprintf("%s/%s", GetLogFolder(), file)
-	return filepath.FromSlash(filename)
+	return GetFullScenarioFilePath(file)
 }
 
 // GetScenarios reads the directory and returns

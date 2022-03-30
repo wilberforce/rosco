@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -59,4 +60,17 @@ func GetDebugFolder() string {
 	dir := GetHomeFolder()
 	dir = fmt.Sprintf("%s/%s", dir, DebugFolder)
 	return filepath.FromSlash(dir)
+}
+
+func GetFullScenarioFilePath(filename string) string {
+	// exception for tests
+	if strings.Contains(filename, "testdata/") {
+		return filename
+	}
+
+	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
+		filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
+	}
+
+	return filepath.FromSlash(filename)
 }
