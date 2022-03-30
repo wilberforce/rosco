@@ -69,7 +69,10 @@ func GetFullScenarioFilePath(filename string) string {
 	}
 
 	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
+		log.Infof("scenario file contains full path %s", filename)
+	} else {
 		filename = fmt.Sprintf("%s/%s", GetLogFolder(), filename)
+		log.Infof("resolved scenario file full path %s", filename)
 	}
 
 	return filepath.FromSlash(filename)
