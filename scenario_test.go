@@ -17,3 +17,8 @@ func Test_scenario_GetScenario(t *testing.T) {
 	s := GetScenario("testdata/nofaults.csv")
 	then.AssertThat(t, s.Name, is.EqualTo("testdata/nofaults.csv"))
 }
+
+func Test_scenario_GetScenarioFCR(t *testing.T) {
+	s := GetScenario("testdata/nofaults.fcr")
+	then.AssertThat(t, s.Name, is.EqualTo("testdata/nofaults.fcr"))
+}

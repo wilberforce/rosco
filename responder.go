@@ -54,9 +54,10 @@ type ScenarioDescription struct {
 
 // ScenarioResponder struct
 type ScenarioResponder struct {
-	file     *os.File
-	RawData  []*RawData
-	Playbook Playbook
+	fileReader ResponderFileReader
+	file       *os.File
+	RawData    []*RawData
+	Playbook   Playbook
 }
 
 // NewResponder creates an instance of a Responder
@@ -95,37 +96,41 @@ func (responder *ScenarioResponder) loadScenarioCSV(filepath string) error {
 
 // LoadScenario loads a scenario for playing from the ECU
 func (responder *ScenarioResponder) LoadScenario(filepath string) error {
+	var err error
 	var timestamp time.Time
-	err := responder.loadScenarioCSV(filepath)
 
-	if err == nil {
-		// reset the Position of the Playbook
-		responder.Playbook.Position = 0
-		responder.Playbook.Count = len(responder.RawData)
-		responder.Playbook.servedDataframe7d = false
-		responder.Playbook.servedDataframe80 = false
+	if responder.fileReader, err = NewResponderFileReader(filepath); err == nil {
+		//err := responder.loadScenarioCSV(filepath)
 
-		// iterate the scenario extracting the raw dataframes into a sequential Playbook
-		for i := 0; i < len(responder.RawData); i++ {
-			pr := PlaybookResponse{}
+		if responder.RawData, err = responder.fileReader.Load(); err == nil {
+			// reset the Position of the Playbook
+			responder.Playbook.Position = 0
+			responder.Playbook.Count = len(responder.RawData)
+			responder.Playbook.servedDataframe7d = false
+			responder.Playbook.servedDataframe80 = false
 
-			// attempt to convert to time
-			if timestamp, err = time.Parse("2006-01-02 15:04:05.000", responder.RawData[i].Time); err != nil {
-				if timestamp, err = time.Parse("15:04:05.000", responder.RawData[i].Time); err != nil {
-					if timestamp, err = time.Parse("15:04:05", responder.RawData[i].Time); err != nil {
-						if timestamp, err = time.Parse("04:05.0", responder.RawData[i].Time); err != nil {
-							log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
-							timestamp = time.Now()
+			// iterate the scenario extracting the raw dataframes into a sequential Playbook
+			for i := 0; i < len(responder.RawData); i++ {
+				pr := PlaybookResponse{}
+
+				// attempt to convert to time
+				if timestamp, err = time.Parse("2006-01-02 15:04:05.000", responder.RawData[i].Time); err != nil {
+					if timestamp, err = time.Parse("15:04:05.000", responder.RawData[i].Time); err != nil {
+						if timestamp, err = time.Parse("15:04:05", responder.RawData[i].Time); err != nil {
+							if timestamp, err = time.Parse("04:05.0", responder.RawData[i].Time); err != nil {
+								log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
+								timestamp = time.Now()
+							}
 						}
 					}
 				}
+
+				pr.Timestamp = timestamp
+				pr.Dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
+				pr.Dataframe80 = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe80)
+
+				responder.Playbook.Responses = append(responder.Playbook.Responses, pr)
 			}
-
-			pr.Timestamp = timestamp
-			pr.Dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
-			pr.Dataframe80 = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe80)
-
-			responder.Playbook.Responses = append(responder.Playbook.Responses, pr)
 		}
 	}
 
