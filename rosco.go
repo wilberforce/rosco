@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"math"
 	"reflect"
@@ -249,22 +250,31 @@ func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
 	}
 }
 
-func (ecu *ECUReaderInstance) SaveScenario() {
-	csvFile := ecu.dataLogger.Filename
-	// save the log file as a scenario file
-	fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
+func (ecu *ECUReaderInstance) SaveScenario() error {
+	var err error
 
-	// create a new scenario file
-	s := NewScenarioFile(fcrFile)
-	s.ECUID = ecu.Status.ECUID
-	s.ECUSerial = ecu.Status.ECUSerial
+	if ecu.dataLogger != nil {
+		csvFile := ecu.dataLogger.Filename
+		// save the log file as a scenario file
+		fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
 
-	// convert the csv
-	err := s.ConvertLogToScenario(csvFile)
-	if err == nil {
-		err = s.Write()
-		log.Infof("saved scenario %s", fcrFile)
+		// create a new scenario file
+		s := NewScenarioFile(fcrFile)
+		s.ECUID = ecu.Status.ECUID
+		s.ECUSerial = ecu.Status.ECUSerial
+
+		// convert the csv
+		err := s.ConvertLogToScenario(csvFile)
+		if err == nil {
+			err = s.Write()
+			log.Infof("saved scenario %s", fcrFile)
+		}
+	} else {
+		err := fmt.Errorf("error saving scenario file, data log not initialised")
+		log.Warnf("%s", err)
 	}
+
+	return err
 }
 
 func (ecu *ECUReaderInstance) isMEMSReader() bool {
