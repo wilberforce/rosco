@@ -100,8 +100,6 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 	var timestamp time.Time
 
 	if responder.fileReader, err = NewResponderFileReader(filepath); err == nil {
-		//err := responder.loadScenarioCSV(filepath)
-
 		if responder.RawData, err = responder.fileReader.Load(); err == nil {
 			// reset the Position of the Playbook
 			responder.Playbook.Position = 0
@@ -136,11 +134,6 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 
 	return err
 }
-
-// Save the scenario in binary format
-//func (Responder *ScenarioResponder) SaveScenario(filepath string) error {
-//
-//}
 
 // MovePositionToLocation finds and moves the position in the playbook to
 // the time location specified
