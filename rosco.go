@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -233,6 +234,8 @@ func (ecu *ECUReaderInstance) closeLog() {
 	if ecu.isMEMSReader() {
 		if ecu.dataLogger != nil {
 			ecu.dataLogger.Close()
+			// save a scenario file
+			ecu.SaveScenario(ecu.dataLogger.Filename)
 		}
 	}
 }
@@ -243,6 +246,23 @@ func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
 			// write to a logfile if the ecu reader is a real (or virtual) ECU
 			go ecu.dataLogger.WriteMemsDataToFile(df)
 		}
+	}
+}
+
+func (ecu *ECUReaderInstance) SaveScenario(csvFile string) {
+	// save the log file as a scenario file
+	fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
+
+	// create a new scenario file
+	s := NewScenarioFile(fcrFile)
+	s.ECUID = ecu.Status.ECUID
+	s.ECUSerial = ecu.Status.ECUSerial
+
+	// convert the csv
+	err := s.ConvertLogToScenario(csvFile)
+	if err == nil {
+		err = s.Write()
+		log.Infof("saved scenario %s", fcrFile)
 	}
 }
 
