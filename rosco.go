@@ -97,7 +97,13 @@ func (ecu *ECUReaderInstance) GetDataframes() MemsData {
 			df = ecu.createMemsDataframe(df80, df7d)
 			// include the raw df converted into string format
 			df.Dataframe80 = hex.EncodeToString(d80)
+			if len(df.Dataframe80) != 29 {
+				log.Warnf("dataframe 0x80 length exception, epexted 29 (%s)", df.Dataframe80)
+			}
 			df.Dataframe7d = hex.EncodeToString(d7d)
+			if len(df.Dataframe7d) != 33 {
+				log.Warnf("dataframe 0x7D length exception, epexted 33 (%s)", df.Dataframe7d)
+			}
 
 			log.Infof("generated ecu df from dataframe (%+v)", df)
 
