@@ -72,11 +72,16 @@ func (r *MEMSReader) Disconnect() error {
 	// don't try and close an uninitialised serial serialPort
 	// the serial library throws and ugly fatal if that happens
 	if r.serialPort != nil {
-		if err = r.serialPort.Flush(); err != nil {
-			log.Warnf("error flushing serial serialPort (%+v)", err)
-		}
-		if err = r.serialPort.Close(); err != nil {
-			log.Warnf("error closing serial serialPort (%+v)", err)
+		if r.connected {
+			if err = r.serialPort.Flush(); err != nil {
+				log.Warnf("error flushing serial serialPort (%+v)", err)
+			}
+
+			if err = r.serialPort.Close(); err != nil {
+				log.Warnf("error closing serial serialPort (%+v)", err)
+			} else {
+				log.Infof("serial port closed successully")
+			}
 		}
 	}
 
@@ -91,7 +96,10 @@ func (r *MEMSReader) connectToSerialPort(port string) error {
 
 	// connect to the ecu, timeout if we don't get data after a couple of seconds
 	c := &serial.Config{Name: port, Baud: 9600, ReadTimeout: time.Millisecond * 2000}
-	r.serialPort, err = serial.OpenPort(c)
+
+	if r.serialPort, err = serial.OpenPort(c); err != nil {
+		log.Errorf("error opening serial port (%s)", err)
+	}
 
 	return err
 }
