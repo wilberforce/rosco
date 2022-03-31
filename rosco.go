@@ -83,38 +83,45 @@ func (ecu *ECUReaderInstance) ResetDiagnostics() {
 	ecu.Diagnostics = NewDataframeAnalysis(20)
 }
 
-func (ecu *ECUReaderInstance) GetDataframes() MemsData {
+func (ecu *ECUReaderInstance) GetDataframes() (MemsData, error) {
+	var err error
+	var d80, d7d []byte
+	var df80 DataFrame80
+	var df7d DataFrame7d
+
 	df := MemsData{}
 
 	// read the raw dataframes
 	log.Info("getting 0x7d and 0x80 dataframes")
-	d80, d7d := ecu.readRawDataFrames()
 
-	// create the dataframes from the raw binary df
-	if df80, err := ecu.createDataframe80(d80); err == nil {
-		if df7d, err := ecu.createDataframe7D(d7d); err == nil {
-			// build the Mems Dataframe using the raw df and applying the relevant adjustments and calculations
-			df = ecu.createMemsDataframe(df80, df7d)
-			// include the raw df converted into string format
-			df.Dataframe80 = hex.EncodeToString(d80)
-			if len(df.Dataframe80) != 58 {
-				log.Warnf("dataframe 0x80 length exception, expected 29 (%s)", df.Dataframe80)
+	if d80, d7d, err = ecu.readRawDataFrames(); err == nil {
+		// create the dataframes from the raw binary df
+		if df80, err = ecu.createDataframe80(d80); err == nil {
+			if df7d, err = ecu.createDataframe7D(d7d); err == nil {
+				// build the Mems Dataframe using the raw df and applying the relevant adjustments and calculations
+				df = ecu.createMemsDataframe(df80, df7d)
+				// include the raw df converted into string format
+				df.Dataframe80 = hex.EncodeToString(d80)
+				if len(df.Dataframe80) != 58 {
+					log.Warnf("dataframe 0x80 length exception, expected 29 (%s)", df.Dataframe80)
+				}
+
+				df.Dataframe7d = hex.EncodeToString(d7d)
+				if len(df.Dataframe7d) != 66 {
+					log.Warnf("dataframe 0x7D length exception, expected 33 (%s)", df.Dataframe7d)
+				}
+
+				log.Infof("generated ecu df from dataframe (%+v)", df)
+
+				ecu.Diagnostics.Analyse(df)
+				df.Analytics = ecu.Diagnostics.Analysis
 			}
-			df.Dataframe7d = hex.EncodeToString(d7d)
-			if len(df.Dataframe7d) != 66 {
-				log.Warnf("dataframe 0x7D length exception, expected 33 (%s)", df.Dataframe7d)
-			}
-
-			log.Infof("generated ecu df from dataframe (%+v)", df)
-
-			ecu.Diagnostics.Analyse(df)
-			df.Analytics = ecu.Diagnostics.Analysis
 		}
+
+		ecu.writeToLog(df)
 	}
 
-	ecu.writeToLog(df)
-
-	return df
+	return df, err
 
 }
 
@@ -221,18 +228,22 @@ func (ecu *ECUReaderInstance) createDataframe80(d80 []byte) (DataFrame80, error)
 	return df80, err
 }
 
-func (ecu *ECUReaderInstance) readRawDataFrames() ([]byte, []byte) {
+func (ecu *ECUReaderInstance) readRawDataFrames() ([]byte, []byte, error) {
+	var dferr error
 	var err error
 	var dataframe7d, dataframe80 []byte
 
 	if dataframe80, err = ecu.ecuReader.SendAndReceive(MEMSReqData80); err != nil {
-		log.Errorf("error recieving dataframe 0x80 (%s)", err)
-	}
-	if dataframe7d, err = ecu.ecuReader.SendAndReceive(MEMSReqData7D); err != nil {
-		log.Errorf("error recieving dataframe 0x7D (%s)", err)
+		dferr = fmt.Errorf("error recieving dataframe 0x80 (%s)", err)
+		log.Errorf("%s", dferr)
 	}
 
-	return dataframe80, dataframe7d
+	if dataframe7d, err = ecu.ecuReader.SendAndReceive(MEMSReqData7D); err != nil {
+		dferr = fmt.Errorf("error recieving dataframe 0x7d (%s)", err)
+		log.Errorf("%s", dferr)
+	}
+
+	return dataframe80, dataframe7d, dferr
 }
 
 func (ecu *ECUReaderInstance) openLog() {

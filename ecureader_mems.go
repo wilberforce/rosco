@@ -185,13 +185,14 @@ func (r *MEMSReader) readSerial(command []byte) ([]byte, error) {
 			bytesRead, err = r.serialPort.Read(b)
 
 			if bytesRead == 0 {
-				err = fmt.Errorf("0 bytes received, serial serialPort read error, timeout? (%s)", err)
+				err = fmt.Errorf("0 bytes received, serial port read error (%s)", err)
 				log.Errorf("%s", err)
+				return receivedBytes, err
 				// drop out of loop, send back a 0x00 byte array response
 				// this prevents the loop getting blocked on a read error
-				// -->
-				// count = size
-				// receivedBytes = append(receivedBytes, b...)
+
+				//count = size
+				//receivedBytes = append(receivedBytes, b...)
 			} else {
 				// append the read bytes to the receivedBytes frame
 				receivedBytes = append(receivedBytes, b[:bytesRead]...)

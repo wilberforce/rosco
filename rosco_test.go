@@ -60,6 +60,8 @@ func Test_rosco_connectToeECU(t *testing.T) {
 
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, connected, is.True())
+
+	_ = r.Disconnect()
 }
 
 func Test_rosco_ResetDiagnostics(t *testing.T) {
@@ -77,6 +79,27 @@ func Test_rosco_GetDataframes(t *testing.T) {
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, connected, is.True())
 
-	df := r.GetDataframes()
+	df, err := r.GetDataframes()
 	then.AssertThat(t, df.CoolantTemp, is.GreaterThan(1))
+
+	err = r.Disconnect()
+	then.AssertThat(t, err, is.Nil())
+}
+
+func Test_rosco_SustainedGetDataframes(t *testing.T) {
+	virtualPort := getVirtualPort()
+	r := NewECUReaderInstance()
+	r.ecuReader = NewECUReader(virtualPort)
+	connected, err := r.connectToECU()
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, connected, is.True())
+
+	for i := 0; i < 10; i++ {
+		_, err := r.GetDataframes()
+		then.AssertThat(t, err, is.Nil())
+	}
+
+	err = r.Disconnect()
+	then.AssertThat(t, err, is.Nil())
 }
