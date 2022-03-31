@@ -13,9 +13,9 @@ import (
 // ECUReaderInstance communication structure for MEMS
 type ECUReaderInstance struct {
 	ecuReader   ECUReader
+	dataLogger  *MemsDataLogger
 	Status      *ECUStatus
 	Diagnostics *DataframeAnalysis
-	Datalogger  *MemsDataLogger
 	Responder   *ScenarioResponder
 }
 
@@ -46,6 +46,8 @@ func (ecu *ECUReaderInstance) ConnectAndInitialiseECU(port string) (bool, error)
 			ecu.Status.ECUID, err = ecu.getECUID()
 			ecu.Status.ECUSerial, err = ecu.getECUSerial()
 			ecu.Status.IACPosition, err = ecu.GetIACPosition()
+
+			ecu.openLog()
 		}
 	}
 
@@ -62,6 +64,7 @@ func (ecu *ECUReaderInstance) Disconnect() error {
 	}
 
 	ecu.resetStatus()
+	ecu.closeLog()
 
 	return err
 }
@@ -219,11 +222,30 @@ func (ecu *ECUReaderInstance) readRawDataFrames() ([]byte, []byte) {
 	return dataframe80, dataframe7d
 }
 
-func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
-	if ecu.Datalogger != nil {
-		if reflect.TypeOf(ecu.ecuReader) == reflect.TypeOf(&MEMSReader{}) {
-			// write to a logfile if the ecu reader is a real (or virtual) ECU
-			go ecu.Datalogger.WriteMemsDataToFile(df)
+func (ecu *ECUReaderInstance) openLog() {
+	// initialise logging
+	if ecu.isMEMSReader() {
+		ecu.dataLogger = NewMemsDataLogger(GetLogFolder(), ecu.Status.ECUSerial)
+	}
+}
+
+func (ecu *ECUReaderInstance) closeLog() {
+	if ecu.isMEMSReader() {
+		if ecu.dataLogger != nil {
+			ecu.dataLogger.Close()
 		}
 	}
+}
+
+func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
+	if ecu.dataLogger != nil {
+		if ecu.isMEMSReader() {
+			// write to a logfile if the ecu reader is a real (or virtual) ECU
+			go ecu.dataLogger.WriteMemsDataToFile(df)
+		}
+	}
+}
+
+func (ecu *ECUReaderInstance) isMEMSReader() bool {
+	return reflect.TypeOf(ecu.ecuReader) == reflect.TypeOf(&MEMSReader{})
 }

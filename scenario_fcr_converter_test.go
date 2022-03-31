@@ -29,7 +29,7 @@ func Test_scenario_ReadScenarioFile(t *testing.T) {
 	err := s.Read()
 
 	then.AssertThat(t, err, is.Nil())
-	then.AssertThat(t, s.Name, is.EqualTo("testdata/nofaults.csv"))
+	then.AssertThat(t, s.Name, is.EqualTo("testdata/nofaults"))
 }
 
 func Test_scenario_ConvertAndSaveScenarioFile(t *testing.T) {

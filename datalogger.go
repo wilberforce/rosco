@@ -114,6 +114,8 @@ func (datalogger *MemsDataLogger) Close() {
 
 		if err = datalogger.file.Close(); err != nil {
 			log.Errorf("Error closing logfile (%s)", err)
+		} else {
+			log.Infof("closed logfile %s", datalogger.Filepath)
 		}
 	}
 }

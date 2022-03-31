@@ -42,6 +42,7 @@ func (r *MEMSReader) Connect() (bool, error) {
 
 	// connected, no errors
 	r.connected = true
+
 	return r.connected, nil
 }
 
