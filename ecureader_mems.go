@@ -189,8 +189,9 @@ func (r *MEMSReader) readSerial(command []byte) ([]byte, error) {
 				log.Errorf("%s", err)
 				// drop out of loop, send back a 0x00 byte array response
 				// this prevents the loop getting blocked on a read error
-				count = size
-				receivedBytes = append(receivedBytes, b...)
+				// -->
+				// count = size
+				// receivedBytes = append(receivedBytes, b...)
 			} else {
 				// append the read bytes to the receivedBytes frame
 				receivedBytes = append(receivedBytes, b[:bytesRead]...)
