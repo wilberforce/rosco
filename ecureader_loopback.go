@@ -29,6 +29,12 @@ func (r *LoopbackReader) SendAndReceive(command []byte) ([]byte, error) {
 	var err error
 	var response []byte
 
+	if !r.connected {
+		err = fmt.Errorf("loopback is not connected, unable to send %X", command)
+		log.Errorf("%s", err)
+		return response, err
+	}
+
 	// convert the command code to a string
 	cmd := hex.EncodeToString(command)
 	cmd = strings.ToUpper(cmd)

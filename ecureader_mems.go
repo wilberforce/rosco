@@ -47,8 +47,21 @@ func (r *MEMSReader) Connect() (bool, error) {
 }
 
 func (r *MEMSReader) SendAndReceive(command []byte) ([]byte, error) {
-	r.writeSerial(command)
-	response, err := r.readSerial(command)
+	var response []byte
+	var err error
+
+	if r.serialPort != nil {
+		if r.connected {
+			r.writeSerial(command)
+			response, err = r.readSerial(command)
+		} else {
+			err = fmt.Errorf("ecu is not connected, unable to send %X", command)
+			log.Errorf("%s", err)
+		}
+	} else {
+		err = fmt.Errorf("serial connnection not initialised, unable to send %X", command)
+		log.Errorf("%s", err)
+	}
 
 	return response, err
 }

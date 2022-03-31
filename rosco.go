@@ -60,6 +60,7 @@ func (ecu *ECUReaderInstance) Disconnect() error {
 	var err error
 
 	if err = ecu.ecuReader.Disconnect(); err == nil {
+		ecu.Status.Connected = false
 		log.Info("disconnected ecu")
 	} else {
 		log.Warnf("error disconnecting (%s)", err)
@@ -236,7 +237,7 @@ func (ecu *ECUReaderInstance) closeLog() {
 		if ecu.dataLogger != nil {
 			ecu.dataLogger.Close()
 			// save a scenario file
-			ecu.SaveScenario()
+			_ = ecu.SaveScenario()
 		}
 	}
 }

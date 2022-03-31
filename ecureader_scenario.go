@@ -1,6 +1,7 @@
 package rosco
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,6 +41,12 @@ func (r *ScenarioReader) Connect() (bool, error) {
 func (r *ScenarioReader) SendAndReceive(command []byte) ([]byte, error) {
 	var err error
 	var data []byte
+
+	if !r.connected {
+		err = fmt.Errorf("scenario reader is not connected, unable to send %X", command)
+		log.Errorf("%s", err)
+		return data, err
+	}
 
 	data = r.Responder.GetECUResponse(command)
 	log.Infof("read (%X) from scenario playback file", data)
