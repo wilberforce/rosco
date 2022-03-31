@@ -235,7 +235,7 @@ func (ecu *ECUReaderInstance) closeLog() {
 		if ecu.dataLogger != nil {
 			ecu.dataLogger.Close()
 			// save a scenario file
-			ecu.SaveScenario(ecu.dataLogger.Filename)
+			ecu.SaveScenario()
 		}
 	}
 }
@@ -249,7 +249,8 @@ func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
 	}
 }
 
-func (ecu *ECUReaderInstance) SaveScenario(csvFile string) {
+func (ecu *ECUReaderInstance) SaveScenario() {
+	csvFile := ecu.dataLogger.Filename
 	// save the log file as a scenario file
 	fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
 
