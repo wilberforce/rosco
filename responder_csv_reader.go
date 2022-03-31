@@ -23,6 +23,7 @@ func NewScenarioCSVReader(filepath string) *ScenarioCSVReader {
 func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 	var err error
 	var data []*RawData
+	var date time.Time
 
 	if err = r.openFile(); err == nil {
 		if err = gocsv.Unmarshal(r.file, &data); err != nil {
@@ -30,15 +31,21 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 		} else {
 			log.Infof("successfully parsed %s, %d records read", r.filepath, len(data))
 
+			if file, err := os.Stat(r.file.Name()); err == nil {
+				date = file.ModTime()
+			} else {
+				date = time.Now()
+			}
+
 			r.info = ResponderFileInfo{
 				Data: data,
 				Description: ScenarioDescription{
-					Name:     r.filepath,
+					Name:     r.file.Name(),
 					Count:    len(data),
 					Position: 0,
-					Date:     time.Time{},
+					Date:     date,
 					Details:  ScenarioDetails{},
-					Summary:  "",
+					Summary:  "MemsFCR Log File",
 				},
 			}
 		}
