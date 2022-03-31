@@ -2,7 +2,6 @@ package rosco
 
 import (
 	"bytes"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -30,11 +29,14 @@ func GetScenarios() ([]ScenarioDescription, error) {
 	if err == nil {
 		for _, file := range fileInfo {
 			if isValidLogFile(file) {
-				scenario := ScenarioDescription{}
-				scenario.Date = file.ModTime()
-				scenario.Name = file.Name()
-				scenario.Count = lineCounter(fmt.Sprintf("%s/%s", logFolder, scenario.Name))
-				scenarios = append(scenarios, scenario)
+				filename := getScenarioPath(file.Name())
+				if scenario, err := getScenarioInfo(filename); err == nil {
+					scenarios = append(scenarios, scenario)
+				}
+				//scenario := ScenarioDescription{}
+				//scenario.Date = file.ModTime()
+				//scenario.Name = file.Name()
+				//scenario.Count = lineCounter(fmt.Sprintf("%s/%s", logFolder, scenario.Name))
 			}
 		}
 
@@ -49,6 +51,28 @@ func GetScenarios() ([]ScenarioDescription, error) {
 func isValidLogFile(file os.FileInfo) bool {
 	filename := file.Name()
 	return isCSVFile(filename) || isFCRFile(filename)
+}
+
+func getScenarioInfo(filepath string) (ScenarioDescription, error) {
+	var err error
+	var fileReader ResponderFileReader
+	var info ResponderFileInfo
+	var description ScenarioDescription
+
+	if fileReader, err = NewResponderFileReader(filepath); err == nil {
+		if info, err = fileReader.Load(); err == nil {
+			description = ScenarioDescription{
+				Name:     info.Description.Name,
+				Count:    info.Description.Count,
+				Position: 0,
+				Date:     info.Description.Date,
+				Details:  ScenarioDetails{},
+				Summary:  info.Description.Summary,
+			}
+		}
+	}
+
+	return description, err
 }
 
 // GetScenario returns the data for the given scenario
