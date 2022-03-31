@@ -25,6 +25,8 @@ func Test_loopback_Disconnect(t *testing.T) {
 
 func Test_loopback_SendAndReceive(t *testing.T) {
 	r := NewLoopbackReader()
+	_, err := r.Connect()
+
 	response, err := r.SendAndReceive([]byte{0x0A})
 
 	// expect echo of command

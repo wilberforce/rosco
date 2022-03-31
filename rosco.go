@@ -60,14 +60,18 @@ func (ecu *ECUReaderInstance) Disconnect() error {
 	var err error
 
 	if err = ecu.ecuReader.Disconnect(); err == nil {
-		ecu.Status.Connected = false
 		log.Info("disconnected ecu")
 	} else {
 		log.Warnf("error disconnecting (%s)", err)
 	}
 
+	ecu.Status.Connected = false
+
 	ecu.resetStatus()
 	ecu.closeLog()
+
+	// save a scenario file
+	_ = ecu.saveScenario()
 
 	return err
 }
@@ -236,8 +240,6 @@ func (ecu *ECUReaderInstance) closeLog() {
 	if ecu.isMEMSReader() {
 		if ecu.dataLogger != nil {
 			ecu.dataLogger.Close()
-			// save a scenario file
-			_ = ecu.SaveScenario()
 		}
 	}
 }
@@ -251,28 +253,36 @@ func (ecu *ECUReaderInstance) writeToLog(df MemsData) {
 	}
 }
 
-func (ecu *ECUReaderInstance) SaveScenario() error {
+func (ecu *ECUReaderInstance) saveScenario() error {
 	var err error
 
-	if ecu.dataLogger != nil {
-		csvFile := ecu.dataLogger.Filename
-		// save the log file as a scenario file
-		fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
+	if ecu.isMEMSReader() {
+		if ecu.dataLogger != nil {
+			csvFile := ecu.dataLogger.Filename
+			// save the log file as a scenario file
+			fcrFile := strings.Replace(csvFile, ".csv", ".fcr", 1)
 
-		// create a new scenario file
-		s := NewScenarioFile(fcrFile)
-		s.ECUID = ecu.Status.ECUID
-		s.ECUSerial = ecu.Status.ECUSerial
+			// create a new scenario file
+			s := NewScenarioFile(fcrFile)
+			s.ECUID = ecu.Status.ECUID
+			s.ECUSerial = ecu.Status.ECUSerial
 
-		// convert the csv
-		err := s.ConvertLogToScenario(csvFile)
-		if err == nil {
-			err = s.Write()
-			log.Infof("saved scenario %s", fcrFile)
+			// convert the csv
+			if err := s.ConvertLogToScenario(csvFile); err == nil {
+				if err = s.Write(); err == nil {
+					log.Infof("successfully saved scenario %s", fcrFile)
+				} else {
+					err := fmt.Errorf("error writing scenario file (%s)", err)
+					log.Errorf("%s", err)
+				}
+			} else {
+				err := fmt.Errorf("error converting scenario file (%s)", err)
+				log.Errorf("%s", err)
+			}
+		} else {
+			err := fmt.Errorf("error saving scenario file, data log not initialised")
+			log.Warnf("%s", err)
 		}
-	} else {
-		err := fmt.Errorf("error saving scenario file, data log not initialised")
-		log.Warnf("%s", err)
 	}
 
 	return err
