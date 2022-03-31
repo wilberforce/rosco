@@ -5,7 +5,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"strings"
 	"time"
 )
 
@@ -37,7 +36,7 @@ func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
 	filename := getScenarioPath(id)
 
 	if err = responder.LoadScenario(filename); err == nil {
-		scenario.Name = strings.Replace(id, ".csv", "", 1)
+		scenario.Name = id
 		scenario.Count = responder.Playbook.Count
 		scenario.RawData = responder.RawData
 		scenario.Summary = fmt.Sprintf("Scenario file created from %s", id)
