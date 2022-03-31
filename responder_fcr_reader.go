@@ -10,7 +10,7 @@ import (
 type ScenarioFCRReader struct {
 	filepath string
 	file     *os.File
-	data     []*RawData
+	info     ResponderFileInfo
 }
 
 func NewScenarioFCRReader(filepath string) *ScenarioFCRReader {
@@ -20,7 +20,7 @@ func NewScenarioFCRReader(filepath string) *ScenarioFCRReader {
 	return r
 }
 
-func (r *ScenarioFCRReader) Load() ([]*RawData, error) {
+func (r *ScenarioFCRReader) Load() (ResponderFileInfo, error) {
 	var err error
 	var fcrData ScenarioFile
 
@@ -30,12 +30,23 @@ func (r *ScenarioFCRReader) Load() ([]*RawData, error) {
 		if err = json.Unmarshal(data, &fcrData); err != nil {
 			log.Errorf("error parsing csv file %s (%s)", r.filepath, err)
 		} else {
-			r.data = fcrData.RawData
-			log.Infof("successfully parsed %s, %d records read", r.filepath, len(r.data))
+			r.info = ResponderFileInfo{
+				Data: fcrData.RawData,
+				Description: ScenarioDescription{
+					Name:     fcrData.Name,
+					Count:    fcrData.Count,
+					Position: 0,
+					Date:     fcrData.Date,
+					Details:  ScenarioDetails{},
+					Summary:  fcrData.Summary,
+				},
+			}
+
+			log.Infof("successfully parsed %s, %d records read", r.filepath, len(r.info.Data))
 		}
 	}
 
-	return r.data, err
+	return r.info, err
 }
 
 func (r *ScenarioFCRReader) openFile() error {

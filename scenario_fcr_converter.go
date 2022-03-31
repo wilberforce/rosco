@@ -2,8 +2,10 @@ package rosco
 
 import (
 	"encoding/json"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -35,9 +37,13 @@ func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
 	filename := getScenarioPath(id)
 
 	if err = responder.LoadScenario(filename); err == nil {
-		scenario.Name = id
+		scenario.Name = strings.Replace(id, ".csv", "", 1)
 		scenario.Count = responder.Playbook.Count
 		scenario.RawData = responder.RawData
+		scenario.Summary = fmt.Sprintf("Scenario file created from %s", id)
+		if scenario.Count > 0 {
+			scenario.Date, _ = ConvertTimeFieldToDate(responder.RawData[0].Time)
+		}
 
 		log.Infof("converted %s to %s", filename, scenario.filePath)
 	} else {

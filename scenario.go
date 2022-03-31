@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
-	"strings"
 )
 
 // getScenarioPath returns the path to the scenario files
@@ -35,7 +34,6 @@ func GetScenarios() ([]ScenarioDescription, error) {
 				scenario.Date = file.ModTime()
 				scenario.Name = file.Name()
 				scenario.Count = lineCounter(fmt.Sprintf("%s/%s", logFolder, scenario.Name))
-				scenario.Status = "Ready"
 				scenarios = append(scenarios, scenario)
 			}
 		}
@@ -49,7 +47,8 @@ func GetScenarios() ([]ScenarioDescription, error) {
 }
 
 func isValidLogFile(file os.FileInfo) bool {
-	return strings.HasSuffix(strings.ToLower(file.Name()), ".csv") || strings.HasSuffix(strings.ToLower(file.Name()), ".fcr")
+	filename := file.Name()
+	return isCSVFile(filename) || isFCRFile(filename)
 }
 
 // GetScenario returns the data for the given scenario

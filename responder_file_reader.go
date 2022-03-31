@@ -5,8 +5,13 @@ import (
 	"strings"
 )
 
+type ResponderFileInfo struct {
+	Data        []*RawData
+	Description ScenarioDescription
+}
+
 type ResponderFileReader interface {
-	Load() ([]*RawData, error)
+	Load() (ResponderFileInfo, error)
 }
 
 func NewResponderFileReader(filepath string) (ResponderFileReader, error) {

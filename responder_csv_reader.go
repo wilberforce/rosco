@@ -4,12 +4,13 @@ import (
 	"github.com/gocarina/gocsv"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"time"
 )
 
 type ScenarioCSVReader struct {
 	filepath string
 	file     *os.File
-	data     []*RawData
+	info     ResponderFileInfo
 }
 
 func NewScenarioCSVReader(filepath string) *ScenarioCSVReader {
@@ -19,18 +20,31 @@ func NewScenarioCSVReader(filepath string) *ScenarioCSVReader {
 	return r
 }
 
-func (r *ScenarioCSVReader) Load() ([]*RawData, error) {
+func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 	var err error
+	var data []*RawData
 
 	if err = r.openFile(); err == nil {
-		if err = gocsv.Unmarshal(r.file, &r.data); err != nil {
+		if err = gocsv.Unmarshal(r.file, &data); err != nil {
 			log.Errorf("error parsing csv file %s (%s)", r.filepath, err)
 		} else {
-			log.Infof("successfully parsed %s, %d records read", r.filepath, len(r.data))
+			log.Infof("successfully parsed %s, %d records read", r.filepath, len(data))
+
+			r.info = ResponderFileInfo{
+				Data: data,
+				Description: ScenarioDescription{
+					Name:     r.filepath,
+					Count:    len(data),
+					Position: 0,
+					Date:     time.Time{},
+					Details:  ScenarioDetails{},
+					Summary:  "",
+				},
+			}
 		}
 	}
 
-	return r.data, err
+	return r.info, err
 }
 
 func (r *ScenarioCSVReader) openFile() error {

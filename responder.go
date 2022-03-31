@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/gocarina/gocsv"
 )
 
 // RawData represents the raw data from the log file
@@ -46,7 +44,6 @@ type ScenarioDescription struct {
 	Name     string          `json:"name"`
 	Count    int             `json:"Count"`
 	Position int             `json:"Position"`
-	Status   string          `json:"status"`
 	Date     time.Time       `json:"Date"`
 	Details  ScenarioDetails `json:"Details"`
 	Summary  string          `json:"Summary"`
@@ -54,10 +51,11 @@ type ScenarioDescription struct {
 
 // ScenarioResponder struct
 type ScenarioResponder struct {
-	fileReader ResponderFileReader
-	file       *os.File
-	RawData    []*RawData
-	Playbook   Playbook
+	fileReader  ResponderFileReader
+	file        *os.File
+	RawData     []*RawData
+	Playbook    Playbook
+	Description ScenarioDescription
 }
 
 // NewResponder creates an instance of a Responder
@@ -66,44 +64,19 @@ func NewResponder() *ScenarioResponder {
 	return responder
 }
 
-// Open the CSV scenario file
-func (responder *ScenarioResponder) openFile(filepath string) error {
-	var err error
-
-	responder.file, err = os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, os.ModePerm)
-
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("error opening scenario file")
-	}
-
-	return err
-}
-
-// Load the scenario
-func (responder *ScenarioResponder) loadScenarioCSV(filepath string) error {
-	var err error
-
-	if err = responder.openFile(filepath); err == nil {
-		if err = gocsv.Unmarshal(responder.file, &responder.RawData); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("error parsing scenario file")
-		} else {
-			log.WithFields(log.Fields{"Count": len(responder.RawData)}).Info("scenario loaded successfully")
-		}
-	}
-
-	return err
-}
-
 // LoadScenario loads a scenario for playing from the ECU
 func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 	var err error
 	var timestamp time.Time
+	var info ResponderFileInfo
 
 	if responder.fileReader, err = NewResponderFileReader(filepath); err == nil {
-		if responder.RawData, err = responder.fileReader.Load(); err == nil {
+		if info, err = responder.fileReader.Load(); err == nil {
+			responder.RawData = info.Data
+			responder.Description = info.Description
 			// reset the Position of the Playbook
 			responder.Playbook.Position = 0
-			responder.Playbook.Count = len(responder.RawData)
+			responder.Playbook.Count = info.Description.Count
 			responder.Playbook.servedDataframe7d = false
 			responder.Playbook.servedDataframe80 = false
 
@@ -112,16 +85,7 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 				pr := PlaybookResponse{}
 
 				// attempt to convert to time
-				if timestamp, err = time.Parse("2006-01-02 15:04:05.000", responder.RawData[i].Time); err != nil {
-					if timestamp, err = time.Parse("15:04:05.000", responder.RawData[i].Time); err != nil {
-						if timestamp, err = time.Parse("15:04:05", responder.RawData[i].Time); err != nil {
-							if timestamp, err = time.Parse("04:05.0", responder.RawData[i].Time); err != nil {
-								log.Warnf("unable to parse timestamp %s, defaulting to current time", responder.RawData[i].Time)
-								timestamp = time.Now()
-							}
-						}
-					}
-				}
+				timestamp, err = ConvertTimeFieldToDate(responder.RawData[i].Time)
 
 				pr.Timestamp = timestamp
 				pr.Dataframe7d = responder.convertHexStringToByteArray(responder.RawData[i].Dataframe7d)
@@ -133,6 +97,25 @@ func (responder *ScenarioResponder) LoadScenario(filepath string) error {
 	}
 
 	return err
+}
+
+func ConvertTimeFieldToDate(timeField string) (time.Time, error) {
+	var err error
+	var timestamp time.Time
+
+	// attempt to convert to time
+	if timestamp, err = time.Parse("2006-01-02 15:04:05.000", timeField); err != nil {
+		if timestamp, err = time.Parse("15:04:05.000", timeField); err != nil {
+			if timestamp, err = time.Parse("15:04:05", timeField); err != nil {
+				if timestamp, err = time.Parse("04:05.0", timeField); err != nil {
+					log.Warnf("unable to parse timestamp %s, defaulting to current time", timeField)
+					timestamp = time.Now()
+				}
+			}
+		}
+	}
+
+	return timestamp, err
 }
 
 // MovePositionToLocation finds and moves the position in the playbook to

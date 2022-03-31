@@ -1,8 +1,8 @@
 {
- "Name": "testdata/nofaults.csv",
+ "Name": "testdata/nofaults",
  "Count": 338,
- "Date": "2022-03-31T10:31:56.686462+01:00",
- "Summary": "",
+ "Date": "0000-01-01T12:35:55.186Z",
+ "Summary": "Scenario file created from testdata/nofaults.csv",
  "ECUID": "",
  "ECUSerial": "",
  "MemsData": [
