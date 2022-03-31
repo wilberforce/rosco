@@ -4,6 +4,7 @@ import (
 	"github.com/gocarina/gocsv"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -40,7 +41,7 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 			r.info = ResponderFileInfo{
 				Data: data,
 				Description: ScenarioDescription{
-					Name:     r.file.Name(),
+					Name:     filepath.Base(r.file.Name()),
 					Count:    len(data),
 					Position: 0,
 					Date:     date,
