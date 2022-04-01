@@ -80,6 +80,7 @@ func getScenarioInfo(filepath string) (ScenarioDescription, error) {
 				Date:     info.Description.Date,
 				Details:  ScenarioDetails{},
 				Summary:  info.Description.Summary,
+				FileType: info.Description.FileType,
 			}
 		}
 	}
