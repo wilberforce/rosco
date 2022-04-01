@@ -2,25 +2,20 @@ package rosco
 
 import (
 	"bytes"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"sort"
+	"time"
 )
-
-// getScenarioPath returns the path to the scenario files
-func getScenarioPath(file string) string {
-	if file == "" {
-		return GetLogFolder()
-	}
-	return GetFullScenarioFilePath(file)
-}
 
 // GetScenarios reads the directory and returns
 // a list of scenario entries sorted by filename.
-func GetScenarios() ([]ScenarioDescription, error) {
-	logFolder := getScenarioPath("")
+func GetScenarios(folder string) ([]ScenarioDescription, error) {
+	logFolder := GetFullScenarioFilePath(folder)
 
 	var scenarios []ScenarioDescription
 
@@ -29,14 +24,10 @@ func GetScenarios() ([]ScenarioDescription, error) {
 	if err == nil {
 		for _, file := range fileInfo {
 			if isValidLogFile(file) {
-				filename := getScenarioPath(file.Name())
+				filename := fmt.Sprintf("%s%s", logFolder, file.Name())
 				if scenario, err := getScenarioInfo(filename); err == nil {
 					scenarios = append(scenarios, scenario)
 				}
-				//scenario := ScenarioDescription{}
-				//scenario.Date = file.ModTime()
-				//scenario.Name = file.Name()
-				//scenario.Count = lineCounter(fmt.Sprintf("%s/%s", logFolder, scenario.Name))
 			}
 		}
 
@@ -46,6 +37,26 @@ func GetScenarios() ([]ScenarioDescription, error) {
 	log.Infof("sorted scenarios (%+v)", scenarios)
 
 	return scenarios, err
+}
+
+// GetScenario returns the data for the given scenario
+func GetScenario(id string) ScenarioDescription {
+	file := GetFullScenarioFilePath(id)
+	r := NewResponder()
+	err := r.LoadScenario(file)
+
+	scenario := ScenarioDescription{}
+
+	if err == nil {
+		scenario.Count = r.Playbook.Count
+		scenario.Position = r.Playbook.Position
+		scenario.Name = id
+		scenario.Details.First, _ = r.GetFirst()
+		scenario.Details.Current, _ = r.GetCurrent()
+		scenario.Details.Last, _ = r.GetLast()
+	}
+
+	return scenario
 }
 
 func isValidLogFile(file os.FileInfo) bool {
@@ -64,6 +75,7 @@ func getScenarioInfo(filepath string) (ScenarioDescription, error) {
 			description = ScenarioDescription{
 				Name:     info.Description.Name,
 				Count:    info.Description.Count,
+				Duration: info.Description.Duration,
 				Position: 0,
 				Date:     info.Description.Date,
 				Details:  ScenarioDetails{},
@@ -75,24 +87,41 @@ func getScenarioInfo(filepath string) (ScenarioDescription, error) {
 	return description, err
 }
 
-// GetScenario returns the data for the given scenario
-func GetScenario(id string) ScenarioDescription {
-	file := getScenarioPath(id)
-	r := NewResponder()
-	err := r.LoadScenario(file)
+func getScenarioDuration(start string, end string) (string, error) {
+	var err error
 
-	scenario := ScenarioDescription{}
-
-	if err == nil {
-		scenario.Count = r.Playbook.Count
-		scenario.Position = r.Playbook.Position
-		scenario.Name = id
-		scenario.Details.First, _ = r.GetFirst()
-		scenario.Details.Current, _ = r.GetCurrent()
-		scenario.Details.Last, _ = r.GetLast()
+	if startTime, err := ConvertTimeFieldToDate(start); err == nil {
+		if endTime, err := ConvertTimeFieldToDate(end); err == nil {
+			dur := endTime.Sub(startTime)
+			return humanizeDuration(dur), err
+		}
 	}
 
-	return scenario
+	return "", err
+}
+
+// humanizeDuration humanizes time.Duration output to a meaningful value,
+// golang's default ``time.Duration`` output is badly formatted and unreadable.
+func humanizeDuration(duration time.Duration) string {
+	if duration.Seconds() < 60.0 {
+		return fmt.Sprintf("%ds", int64(duration.Seconds()))
+	}
+	if duration.Minutes() < 60.0 {
+		remainingSeconds := math.Mod(duration.Seconds(), 60)
+		return fmt.Sprintf("%dm %ds", int64(duration.Minutes()), int64(remainingSeconds))
+	}
+	if duration.Hours() < 24.0 {
+		remainingMinutes := math.Mod(duration.Minutes(), 60)
+		remainingSeconds := math.Mod(duration.Seconds(), 60)
+		return fmt.Sprintf("%dh %dm %ds",
+			int64(duration.Hours()), int64(remainingMinutes), int64(remainingSeconds))
+	}
+	remainingHours := math.Mod(duration.Hours(), 24)
+	remainingMinutes := math.Mod(duration.Minutes(), 60)
+	remainingSeconds := math.Mod(duration.Seconds(), 60)
+	return fmt.Sprintf("%d days %dh %dm %ds",
+		int64(duration.Hours()/24), int64(remainingHours),
+		int64(remainingMinutes), int64(remainingSeconds))
 }
 
 type timeSlice []ScenarioDescription

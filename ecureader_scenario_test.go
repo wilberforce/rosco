@@ -62,7 +62,3 @@ func Test_scenarioReader_Disconnect(t *testing.T) {
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, r.connected, is.False())
 }
-
-func Test_scenarioReader_loadScenario(t *testing.T) {
-
-}

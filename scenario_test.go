@@ -7,15 +7,29 @@ import (
 )
 
 func Test_scenario_GetScenarios(t *testing.T) {
-	s, err := GetScenarios()
+	s, err := GetScenarios("./testdata/")
 
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, len(s), is.GreaterThan(0))
+
+	then.AssertThat(t, s[0].Count, is.EqualTo(338))
+	then.AssertThat(t, s[0].Duration, is.EqualTo("3m 17s"))
+}
+
+func Test_scenario_GetScenariosFromLogFolder(t *testing.T) {
+	s, err := GetScenarios("")
+
+	then.AssertThat(t, err, is.Nil())
+	then.AssertThat(t, len(s), is.GreaterThan(0))
+
+	then.AssertThat(t, s[0].Count, is.EqualTo(105))
+	then.AssertThat(t, s[0].Duration, is.EqualTo("1m 19s"))
 }
 
 func Test_scenario_GetScenario(t *testing.T) {
 	s := GetScenario("testdata/nofaults.csv")
 	then.AssertThat(t, s.Name, is.EqualTo("testdata/nofaults.csv"))
+	then.AssertThat(t, s.Count, is.EqualTo(338))
 }
 
 func Test_scenario_GetScenarioFCR(t *testing.T) {

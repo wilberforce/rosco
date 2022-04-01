@@ -42,6 +42,10 @@ func (r *ScenarioFCRReader) Load() (ResponderFileInfo, error) {
 				},
 			}
 
+			if len(data) > 0 {
+				r.info.Description.Duration, err = getScenarioDuration(fcrData.RawData[0].Time, fcrData.RawData[r.info.Description.Count-1].Time)
+			}
+
 			log.Infof("successfully parsed %s, %d records read", r.filepath, len(r.info.Data))
 		}
 	}

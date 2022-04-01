@@ -63,6 +63,12 @@ func GetDebugFolder() string {
 }
 
 func GetFullScenarioFilePath(filename string) string {
+	if filename == "" {
+		folder := GetLogFolder()
+		folder = fmt.Sprintf("%s/", folder)
+		return filepath.FromSlash(folder)
+	}
+
 	// exception for tests
 	if strings.Contains(filename, "testdata/") {
 		return filename

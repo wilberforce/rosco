@@ -43,6 +43,7 @@ type ScenarioDetails struct {
 type ScenarioDescription struct {
 	Name     string          `json:"name"`
 	Count    int             `json:"Count"`
+	Duration string          `json:"Duration"`
 	Position int             `json:"Position"`
 	Date     time.Time       `json:"Date"`
 	Details  ScenarioDetails `json:"Details"`

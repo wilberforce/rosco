@@ -49,6 +49,10 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 					Summary:  "MemsFCR Log File",
 				},
 			}
+
+			if len(data) > 0 {
+				r.info.Description.Duration, err = getScenarioDuration(data[0].Time, data[r.info.Description.Count-1].Time)
+			}
 		}
 	}
 

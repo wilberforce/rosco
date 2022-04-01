@@ -22,7 +22,7 @@ type ScenarioFile struct {
 
 func NewScenarioFile(filepath string) *ScenarioFile {
 	scenario := &ScenarioFile{}
-	scenario.filePath = getScenarioPath(filepath)
+	scenario.filePath = GetFullScenarioFilePath(filepath)
 	scenario.Date = time.Now()
 
 	return scenario
@@ -33,7 +33,7 @@ func (scenario *ScenarioFile) ConvertLogToScenario(id string) error {
 
 	// use the Responder to load the data
 	responder := NewResponder()
-	filename := getScenarioPath(id)
+	filename := GetFullScenarioFilePath(id)
 
 	if err = responder.LoadScenario(filename); err == nil {
 		scenario.Name = id
