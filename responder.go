@@ -48,6 +48,7 @@ type ScenarioDescription struct {
 	Date     time.Time       `json:"Date"`
 	Details  ScenarioDetails `json:"Details"`
 	Summary  string          `json:"Summary"`
+	FileType string          `json:"FileType"`
 }
 
 // ScenarioResponder struct

@@ -47,6 +47,7 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 					Date:     date,
 					Details:  ScenarioDetails{},
 					Summary:  "MemsFCR Log File",
+					FileType: "CSV",
 				},
 			}
 

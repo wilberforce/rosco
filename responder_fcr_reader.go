@@ -39,6 +39,7 @@ func (r *ScenarioFCRReader) Load() (ResponderFileInfo, error) {
 					Date:     fcrData.Date,
 					Details:  ScenarioDetails{},
 					Summary:  fcrData.Summary,
+					FileType: "FCR",
 				},
 			}
 
