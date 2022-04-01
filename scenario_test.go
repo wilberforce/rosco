@@ -22,9 +22,6 @@ func Test_scenario_GetScenariosFromLogFolder(t *testing.T) {
 
 	then.AssertThat(t, err, is.Nil())
 	then.AssertThat(t, len(s), is.GreaterThan(0))
-
-	then.AssertThat(t, s[0].Count, is.GreaterThan(1))
-	then.AssertThat(t, s[0].Duration, is.Not(is.EqualTo("")))
 }
 
 func Test_scenario_GetScenario(t *testing.T) {

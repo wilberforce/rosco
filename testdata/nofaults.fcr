@@ -1,5 +1,5 @@
 {
- "Name": "testdata/nofaults",
+ "Name": "testdata/nofaults.fcr",
  "Count": 338,
  "Date": "0000-01-01T12:35:55.186Z",
  "Summary": "Scenario file created from testdata/nofaults.csv",
