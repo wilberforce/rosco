@@ -1,14 +1,13 @@
 package rosco
 
 import (
-	"bytes"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -31,6 +30,9 @@ func GetScenarios(folder string) ([]ScenarioDescription, error) {
 			}
 		}
 
+		// filter list, so that FCR files are prioritized over CSV files
+		scenarios = filterScenarios(scenarios)
+		// sort into date order, the newest first
 		scenarios = sortScenarios(scenarios)
 	}
 
@@ -142,23 +144,42 @@ func sortScenarios(scenarios []ScenarioDescription) []ScenarioDescription {
 	return sortedScenarios
 }
 
-func lineCounter(filepath string) int {
-	r, _ := os.Open(filepath)
-
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := r.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count
-
-		case err != nil:
-			return count
+func unique(s []string) []string {
+	inResult := make(map[string]bool)
+	var result []string
+	for _, str := range s {
+		if _, ok := inResult[str]; !ok {
+			inResult[str] = true
+			result = append(result, str)
 		}
 	}
+	return result
+}
+
+func filterScenarios(scenarios []ScenarioDescription) []ScenarioDescription {
+	var filteredScenarios []ScenarioDescription
+	inFilter := make(map[string]bool)
+
+	for _, scenario := range scenarios {
+		if strings.HasSuffix(scenario.Name, ".fcr") {
+			// add FCR files first
+			filteredScenarios = append(filteredScenarios, scenario)
+			// add the name minus extension to flag scenario is in the filtered list
+			name := strings.Replace(scenario.Name, ".fcr", "", 1)
+			inFilter[name] = true
+		}
+	}
+
+	for _, scenario := range scenarios {
+		if strings.HasSuffix(scenario.Name, ".csv") {
+			// drop the .CSV extension
+			name := strings.Replace(scenario.Name, ".csv", "", 1)
+			// if the name is not in the filter then add the scenario
+			if _, scenarioInFilter := inFilter[name]; !scenarioInFilter {
+				filteredScenarios = append(filteredScenarios, scenario)
+			}
+		}
+	}
+
+	return filteredScenarios
 }
