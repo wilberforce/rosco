@@ -165,7 +165,7 @@ func filterScenarios(scenarios []ScenarioDescription) []ScenarioDescription {
 			// add FCR files first
 			filteredScenarios = append(filteredScenarios, scenario)
 			// add the name minus extension to flag scenario is in the filtered list
-			name := strings.Replace(scenario.Name, ".fcr", "", 1)
+			name := strings.Replace(strings.ToLower(scenario.Name), ".fcr", "", 1)
 			inFilter[name] = true
 		}
 	}
@@ -173,7 +173,7 @@ func filterScenarios(scenarios []ScenarioDescription) []ScenarioDescription {
 	for _, scenario := range scenarios {
 		if strings.HasSuffix(scenario.Name, ".csv") {
 			// drop the .CSV extension
-			name := strings.Replace(scenario.Name, ".csv", "", 1)
+			name := strings.Replace(strings.ToLower(scenario.Name), ".csv", "", 1)
 			// if the name is not in the filter then add the scenario
 			if _, scenarioInFilter := inFilter[name]; !scenarioInFilter {
 				filteredScenarios = append(filteredScenarios, scenario)
