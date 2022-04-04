@@ -1,6 +1,7 @@
 package rosco
 
 import (
+	"fmt"
 	"github.com/gocarina/gocsv"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -28,7 +29,8 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 
 	if err = r.openFile(); err == nil {
 		if err = gocsv.Unmarshal(r.file, &data); err != nil {
-			log.Errorf("error parsing csv file %s (%s)", r.filepath, err)
+			err = fmt.Errorf("error parsing csv file %s (%s)", r.filepath, err)
+			log.Errorf("%s", err)
 		} else {
 			log.Infof("successfully parsed %s, %d records read", r.filepath, len(data))
 
@@ -36,6 +38,8 @@ func (r *ScenarioCSVReader) Load() (ResponderFileInfo, error) {
 				date = file.ModTime()
 			} else {
 				date = time.Now()
+				// don't report this as an error
+				err = nil
 			}
 
 			r.info = ResponderFileInfo{

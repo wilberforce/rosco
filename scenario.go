@@ -26,7 +26,12 @@ func GetScenarios(folder string) ([]ScenarioDescription, error) {
 				filename := fmt.Sprintf("%s%s", logFolder, file.Name())
 				if scenario, err := getScenarioInfo(filename); err == nil {
 					scenarios = append(scenarios, scenario)
+					log.Infof("added %s to the list of available scenarios", filename)
+				} else {
+					log.Warnf("invalid scenario %s, not added to list of available scenarios", filename)
 				}
+			} else {
+				log.Infof("skipping %s, not a valid log file", file.Name())
 			}
 		}
 
@@ -84,7 +89,12 @@ func getScenarioInfo(filepath string) (ScenarioDescription, error) {
 				Summary:  info.Description.Summary,
 				FileType: info.Description.FileType,
 			}
+			log.Infof("loaded scenario %+v, from %s", description, filepath)
+		} else {
+			log.Errorf("error loading scenatio (%s)", err)
 		}
+	} else {
+		log.Errorf("error creating scenatio reader (%s)", err)
 	}
 
 	return description, err
