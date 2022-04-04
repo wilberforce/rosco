@@ -111,10 +111,10 @@ func (ecu *ECUReaderInstance) GetDataframes() (MemsData, error) {
 					log.Warnf("dataframe 0x7D length exception, expected 33 (%s)", df.Dataframe7d)
 				}
 
-				log.Infof("generated ecu df from dataframe (%+v)", df)
-
 				ecu.Diagnostics.Analyse(df)
 				df.Analytics = ecu.Diagnostics.Analysis
+
+				log.Infof("generated ecu df from dataframe (%+v)", df)
 			}
 		}
 

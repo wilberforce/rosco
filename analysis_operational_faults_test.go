@@ -122,6 +122,12 @@ func Test_isCoilFaulty(t *testing.T) {
 
 	result = d.isCoilFaulty(data)
 	then.AssertThat(t, result, is.False())
+
+	// faulty
+	data = convertDataframeStringToMemsData("7D201014FF92003CFFFF01017A6300FF56FFFF30807FF9FF19401EC0264034C008", "801C04825AFF47FF278625001001000000208C6C000047069A10000080")
+
+	result = d.isCoilFaulty(data)
+	then.AssertThat(t, result, is.True())
 }
 
 func Test_isMAPHigh(t *testing.T) {
@@ -343,6 +349,12 @@ func Test_isCrankshaftPositionSensorFaulty(t *testing.T) {
 
 	result = d.isCrankshaftSensorFaulty(data)
 	then.AssertThat(t, result, is.False())
+
+	// faulty CPS
+	data = convertDataframeStringToMemsData("7D201014FF92003CFFFF01017A6300FF56FFFF30807FF9FF19401EC0264034C008", "801C04825AFF47FF278625001001000000208C6C000047069A10000080")
+
+	result = d.isCrankshaftSensorFaulty(data)
+	then.AssertThat(t, result, is.True())
 }
 
 func Test_isLambdaOscillating(t *testing.T) {
@@ -483,4 +495,14 @@ func Test_isIdleSpeedFaulty(t *testing.T) {
 	d.addToDataset(data)
 	result = d.isIdleSpeedFaulty(data)
 	then.AssertThat(t, result, is.False())
+}
+
+func convertDataframeStringToMemsData(dataframe7d string, dataframe80 string) MemsData {
+	r := NewResponder()
+	d7d := r.convertHexStringToByteArray(dataframe7d)
+	d80 := r.convertHexStringToByteArray(dataframe80)
+	ecu := NewECUReaderInstance()
+	df80, _ := ecu.createDataframe80(d80)
+	df7d, _ := ecu.createDataframe7D(d7d)
+	return ecu.createMemsDataframe(df80, df7d)
 }
