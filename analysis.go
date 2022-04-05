@@ -8,6 +8,7 @@ type DataframeAnalysis struct {
 	datasetLength          int
 	dataset                []MemsData
 	expectedTimeEngineWarm time.Time
+	engineStartedAt        time.Time
 	Analysis               AnalysisReport
 }
 
@@ -133,6 +134,14 @@ func (df *DataframeAnalysis) getExpectedEngineWarmTime(data MemsData) time.Time 
 	warmAt := currentTime.Add(time.Second * secondsToWarm)
 
 	return warmAt
+}
+
+func (df *DataframeAnalysis) getExpectedLambdaOscillationTime(data MemsData) time.Time {
+	// the lambda is expected to start oscillating 90 seconds after the engine has started
+	currentTime, _ := time.Parse(timeFormat, data.Time)
+	oscillationsExpectedAt := currentTime.Add(time.Second * 90)
+
+	return oscillationsExpectedAt
 }
 
 func (df *DataframeAnalysis) isEngineRPMValid(data MemsData) bool {

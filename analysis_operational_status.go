@@ -1,5 +1,7 @@
 package rosco
 
+import "time"
+
 func (df *DataframeAnalysis) analyseOperationalStatus(data MemsData) {
 	df.Analysis.IsEngineRunning = df.isEngineRunning(data)
 	df.Analysis.IsEngineWarming = df.isEngineWarming(data)
@@ -10,7 +12,14 @@ func (df *DataframeAnalysis) analyseOperationalStatus(data MemsData) {
 }
 
 func (df *DataframeAnalysis) isEngineRunning(data MemsData) bool {
-	return data.EngineRPM > engineNotRunningRPM
+	engineRunning := data.EngineRPM > engineNotRunningRPM
+
+	// set the engine start time
+	if engineRunning && df.engineStartedAt.IsZero() {
+		df.engineStartedAt, _ = time.Parse(timeFormat, data.Time)
+	}
+
+	return engineRunning
 }
 
 func (df *DataframeAnalysis) isEngineWarming(data MemsData) bool {

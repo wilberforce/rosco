@@ -357,6 +357,181 @@ func Test_isCrankshaftPositionSensorFaulty(t *testing.T) {
 	then.AssertThat(t, result, is.True())
 }
 
+func Test_isLambdaFaulty(t *testing.T) {
+	d := NewDataframeAnalysis(3)
+
+	data := MemsData{
+		Time:             "12:00:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    lowestLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:00:01.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:00:02.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    highestLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	result := d.isLambdaFaulty(data)
+	then.AssertThat(t, result, is.False())
+
+	d = NewDataframeAnalysis(3)
+
+	data = MemsData{
+		Time:             "12:00:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue - 50,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:00:01.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:00:02.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue + 50,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+	result = d.isLambdaFaulty(data)
+	then.AssertThat(t, result, is.False())
+
+	d = NewDataframeAnalysis(3)
+
+	data = MemsData{
+		Time:             "12:00:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue - 50,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:01:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:01:31.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue + 50,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+	result = d.isLambdaFaulty(data)
+	then.AssertThat(t, result, is.True())
+
+	d = NewDataframeAnalysis(3)
+
+	data = MemsData{
+		Time:             "12:00:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    lowestLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:01:00.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    goodLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+
+	data = MemsData{
+		Time:             "12:01:31.000",
+		EngineRPM:        engineRunning,
+		LambdaVoltage:    highestLambdaValue,
+		CoolantTemp:      warmEngineTemperature,
+		IntakeAirTemp:    goodIntakeTemperature,
+		IdleBasePosition: goodIdleBasePosition,
+		DTC5:             expectedDTC5,
+		BatteryVoltage:   goodBattery,
+	}
+
+	d.Analyse(data)
+	result = d.isLambdaFaulty(data)
+	then.AssertThat(t, result, is.False())
+}
+
 func Test_isLambdaOscillating(t *testing.T) {
 	d := NewDataframeAnalysis(3)
 

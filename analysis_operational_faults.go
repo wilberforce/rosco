@@ -17,9 +17,9 @@ func (df *DataframeAnalysis) analyseOperationalFaults(data MemsData) {
 	df.Analysis.LambdaRangeFault = df.isLambdaOutOfRange(data)
 	df.Analysis.IdleAirControlJackFault = df.isJackCountHigh(data)
 	df.Analysis.CrankshaftSensorFault = df.isCrankshaftSensorFaulty(data)
-	df.Analysis.LambdaOscillationFault = !df.isLambdaOscillating(data)
 	df.Analysis.ThermostatFault = df.isThermostatFaulty(data)
 	df.Analysis.IdleSpeedFault = df.isIdleSpeedFaulty(data)
+	df.Analysis.LambdaOscillationFault = df.isLambdaFaulty(data)
 }
 
 func (df *DataframeAnalysis) isBatteryVoltageLow(data MemsData) bool {
@@ -108,6 +108,24 @@ func (df *DataframeAnalysis) isCrankshaftSensorFaulty(data MemsData) bool {
 	return data.CrankshaftPositionSensor == invalidCASPosition
 }
 
+// if the engine has been started and 90 seconds have elapsed then
+// check if the lambda voltage is oscillating high/low
+// if we don't see the voltage changing then the lambda could be faulty
+func (df *DataframeAnalysis) isLambdaFaulty(data MemsData) bool {
+	if df.isEngineRunning(data) {
+		if !df.engineStartedAt.IsZero() {
+			currentTime, _ := time.Parse(timeFormat, data.Time)
+			startOscillationsAt := df.engineStartedAt.Add(time.Second * 90)
+			if currentTime.After(startOscillationsAt) {
+				return !df.isLambdaOscillating(data)
+			}
+		}
+	}
+
+	// ignore the lambda and return no fault
+	return false
+}
+
 // check if the lambda voltage is oscillating (std dev > 100)
 // need a full dataset for this analysis
 func (df *DataframeAnalysis) isLambdaOscillating(data MemsData) bool {
@@ -129,6 +147,7 @@ func (df *DataframeAnalysis) isLambdaOscillating(data MemsData) bool {
 
 			stddev = math.Sqrt(stddev / (count - 1))
 
+			// expect to see oscillations of at least +/-100mV (353mv - 535mv)
 			return stddev > lambdaOscillationStandardDeviation
 		}
 	}
