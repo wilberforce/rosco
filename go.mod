@@ -1,4 +1,4 @@
-module github.com/andrewdjackson/rosco
+module github.com/wilberforce/rosco
 
 go 1.15
 
