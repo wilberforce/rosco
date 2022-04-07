@@ -104,6 +104,15 @@ func (r *MEMSReader) connectToSerialPort(port string) error {
 	return err
 }
 
+func sleepUntil(start time.Time, plus int) {
+  target := start.Add(time.Duration(plus) * time.Millisecond)
+  sleepMs := target.Sub(time.Now()).Milliseconds()
+  // fmt.Println("Sleeping for ms:")
+  // fmt.Println(sleepMs)
+  if sleepMs < 0 { return }
+  time.Sleep(time.Duration(sleepMs) * time.Millisecond)
+}
+
 // initialises the connection to the ECU
 // The initialisation sequence is as follows:
 //
@@ -117,6 +126,37 @@ func (r *MEMSReader) connectToSerialPort(port string) error {
 func (r *MEMSReader) initialiseMemsECU() error {
 	_ = r.serialPort.Flush()
 
+	log.Infof("initialising ecu slow init")
+	
+	  // clear the line
+	r.serialPort.SetBreak(false)
+	time.Sleep(2000 * time.Millisecond)
+
+  start := time.Now()
+
+  // start bit
+	r.serialPort.SetBreak(true)
+  sleepUntil(start, 200)
+
+  // send the byte
+  ecuAddress := 0x16
+  for i:=0; i<8; i++ {
+
+    bit := (ecuAddress >> i) & 1;
+    if (bit > 0) {
+        r.serialPort.SetBreak(false)
+    } else {
+        r.serialPort.SetBreak(true)
+    }
+
+    sleepUntil(start, 200 + ((i+1)*200))
+
+  }
+  // stop bit
+	r.serialPort.SetBreak(false)
+  sleepUntil(start, 200 + (8*200) + 200)
+	log.Infof("initialising ecu slow init done")
+	
 	log.Infof("initialising ecu")
 
 	r.writeSerial(MEMSInitCommandA)
